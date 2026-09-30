@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="840" viewBox="0 0 1600 840">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#1A0B3D"/>
+      <stop offset="0.5" stop-color="#5B1B8C"/>
+      <stop offset="1" stop-color="#E0457B"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="840" fill="url(#bg)"/>
+  <g fill="#FFFFFF" opacity="0.08">
+    <circle cx="1350" cy="160" r="220"/><circle cx="1450" cy="700" r="160"/>
+  </g>
+  <text x="110" y="170" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="36" letter-spacing="10" fill="#FFD166">JOZI SOUND FESTIVAL PRESENTS</text>
+  <text x="104" y="360" font-family="Impact, 'Arial Black', sans-serif" font-size="190" fill="#FFFFFF">SUMMER LIVE</text>
+  <text x="110" y="450" font-family="Arial, Helvetica, sans-serif" font-size="48" fill="#F5E6FF">3 Stages · 40 Artists · One Night</text>
+  <text x="110" y="560" font-family="Arial Black, Arial, sans-serif" font-size="56" fill="#FFD166">FRIDAY 12 DECEMBER 2026</text>
+  <rect x="110" y="640" width="360" height="100" rx="18" fill="#FFD166"/>
+  <text x="290" y="705" text-anchor="middle" font-family="Arial Black, sans-serif" font-size="38" fill="#1A0B3D">GET TICKETS</text>
+  <g transform="translate(1260 470)">
+    <rect x="-120" y="-150" width="240" height="300" rx="30" fill="#1A0B3D" stroke="#FFD166" stroke-width="8"/>
+    <circle cx="0" cy="-30" r="70" fill="#FFD166"/>
+    <circle cx="0" cy="-30" r="24" fill="#1A0B3D"/>
+    <rect x="-70" y="70" width="140" height="30" rx="15" fill="#FFD166"/>
+  </g>
+</svg>

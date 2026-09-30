@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350" viewBox="0 0 1080 1350">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0B1E4A"/>
+      <stop offset="0.55" stop-color="#12306E"/>
+      <stop offset="1" stop-color="#050B18"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.42" r="0.5">
+      <stop offset="0" stop-color="#3B6FD8" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#3B6FD8" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="kit" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#E63946"/>
+      <stop offset="1" stop-color="#9D1C27"/>
+    </linearGradient>
+  </defs>
+  <rect width="1080" height="1350" fill="url(#bg)"/>
+  <rect width="1080" height="1350" fill="url(#glow)"/>
+  <g opacity="0.07" stroke="#fff" stroke-width="2">
+    <line x1="-100" y1="900" x2="700" y2="100"/><line x1="0" y1="1000" x2="800" y2="200"/>
+    <line x1="300" y1="1300" x2="1180" y2="420"/><line x1="400" y1="1400" x2="1280" y2="520"/>
+  </g>
+  <text x="540" y="118" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="30" letter-spacing="8" fill="#D4AF37">PREMIER CUP · SEMI FINAL</text>
+  <text x="540" y="238" text-anchor="middle" font-family="Impact, 'Arial Black', sans-serif" font-size="128" fill="#FFFFFF">MATCH DAY</text>
+  <!-- player -->
+  <g transform="translate(540 560)">
+    <ellipse cx="0" cy="-150" rx="62" ry="74" fill="#C68642"/>
+    <path d="M-62 -178 q62 -60 124 0 q-10 -40 -62 -46 q-52 6 -62 46z" fill="#1B1B1B"/>
+    <rect x="-24" y="-86" width="48" height="40" fill="#B5763A"/>
+    <path d="M-170 -40 q170 -60 340 0 l40 330 l-100 0 l-10 -150 l-10 300 l-180 0 l-10 -300 l-10 150 l-100 0z" fill="url(#kit)"/>
+    <path d="M-210 -10 l-60 230 l50 12 l70 -200z" fill="#C68642"/>
+    <path d="M210 -10 l60 230 l-50 12 l-70 -200z" fill="#C68642"/>
+    <text x="0" y="120" text-anchor="middle" font-family="Impact, 'Arial Black', sans-serif" font-size="150" fill="#FFFFFF" opacity="0.92">10</text>
+  </g>
+  <!-- badges -->
+  <g transform="translate(150 690)">
+    <path d="M0 -80 l70 20 v60 q0 60 -70 90 q-70 -30 -70 -90 v-60z" fill="#F1FAEE" stroke="#D4AF37" stroke-width="6"/>
+    <text x="0" y="22" text-anchor="middle" font-family="Arial Black, sans-serif" font-size="40" fill="#0B1E4A">LU</text>
+  </g>
+  <g transform="translate(930 690)">
+    <circle r="80" fill="#FFD60A" stroke="#fff" stroke-width="6"/>
+    <text x="0" y="16" text-anchor="middle" font-family="Arial Black, sans-serif" font-size="44" fill="#0B1E4A">RFC</text>
+  </g>
+  <text x="540" y="1010" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-size="62" fill="#FFFFFF">LIONS UTD vs RIVER FC</text>
+  <text x="540" y="1085" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="40" fill="#D4AF37">SATURDAY 14 NOVEMBER 2026 · 19:30</text>
+  <text x="540" y="1140" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="30" fill="#C9D3E8">Orlando Stadium, Soweto — Tickets from R120</text>
+  <rect x="0" y="1200" width="1080" height="150" fill="#050B18"/>
+  <g font-family="Arial Black, sans-serif" font-size="26" fill="#0B1E4A" text-anchor="middle">
+    <rect x="90" y="1235" width="190" height="80" rx="14" fill="#FFFFFF"/><text x="185" y="1285">VOLTA</text>
+    <rect x="330" y="1235" width="190" height="80" rx="14" fill="#FFFFFF"/><text x="425" y="1285">NOVA</text>
+    <rect x="570" y="1235" width="190" height="80" rx="14" fill="#FFFFFF"/><text x="665" y="1285">KORA</text>
+    <rect x="810" y="1235" width="190" height="80" rx="14" fill="#FFFFFF"/><text x="905" y="1285">APEX</text>
+  </g>
+</svg>

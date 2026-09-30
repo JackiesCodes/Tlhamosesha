@@ -1,0 +1,231 @@
+// Tlhamosesha AI — database schema
+// Run `npm run db:push` after setting DATABASE_URL.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Plan {
+  FREE
+  PRO
+  STUDIO
+}
+
+enum AnalysisStatus {
+  QUEUED
+  PROCESSING
+  COMPLETE
+  FAILED
+}
+
+enum AssetKind {
+  OBJECT
+  PERSON
+  LOGO
+  ICON
+  PRODUCT
+  VEHICLE
+  BUILDING
+  BACKGROUND
+  GRADIENT
+  TEXTURE
+  OVERLAY
+  TEXT
+}
+
+enum LayerType {
+  BACKGROUND
+  IMAGE
+  TEXT
+  SHAPE
+  GROUP
+}
+
+enum ExportFormat {
+  PNG
+  JPG
+  SVG
+  PDF
+  PSD_JSON
+  FIGMA_JSON
+  CANVA_JSON
+}
+
+model User {
+  id          String      @id @default(cuid())
+  email       String      @unique
+  name        String?
+  avatarUrl   String?
+  plan        Plan        @default(FREE)
+  workspaceId String?
+  workspace   Workspace?  @relation(fields: [workspaceId], references: [id])
+  projects    Project[]
+  uploads     Upload[]
+  exports     Export[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model Workspace {
+  id        String    @id @default(cuid())
+  name      String
+  slug      String    @unique
+  members   User[]
+  projects  Project[]
+  createdAt DateTime  @default(now())
+}
+
+model Project {
+  id              String            @id @default(cuid())
+  name            String
+  ownerId         String
+  owner           User              @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  workspaceId     String?
+  workspace       Workspace?        @relation(fields: [workspaceId], references: [id])
+  designType      String?
+  thumbnailUrl    String?
+  uploads         Upload[]
+  assets          Asset[]
+  layers          Layer[]
+  colors          Color[]
+  fonts           Font[]
+  reconstructions Reconstruction[]
+  exports         Export[]
+  analyses        AnalysisResult[]
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@index([ownerId])
+}
+
+model Upload {
+  id          String   @id @default(cuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fileName    String
+  mimeType    String
+  sizeBytes   Int
+  width       Int
+  height      Int
+  storageUrl  String
+  checksum    String?
+  createdAt   DateTime @default(now())
+
+  @@index([projectId])
+}
+
+model Asset {
+  id          String    @id @default(cuid())
+  projectId   String
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  kind        AssetKind
+  label       String
+  confidence  Float
+  x           Float
+  y           Float
+  width       Float
+  height      Float
+  storageUrl  String?
+  transparent Boolean   @default(false)
+  meta        Json?
+  createdAt   DateTime  @default(now())
+
+  @@index([projectId, kind])
+}
+
+model Layer {
+  id          String    @id @default(cuid())
+  projectId   String
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  type        LayerType
+  name        String
+  x           Float
+  y           Float
+  width       Float
+  height      Float
+  rotation    Float     @default(0)
+  opacity     Float     @default(1)
+  zIndex      Int
+  visible     Boolean   @default(true)
+  locked      Boolean   @default(false)
+  props       Json
+  assetId     String?
+  parentId    String?
+
+  @@index([projectId, zIndex])
+}
+
+model Color {
+  id         String  @id @default(cuid())
+  projectId  String
+  project    Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  hex        String
+  role       String  // primary | secondary | accent | gradient
+  weight     Float
+  name       String?
+
+  @@index([projectId])
+}
+
+model Font {
+  id         String  @id @default(cuid())
+  projectId  String
+  project    Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  family     String
+  weight     Int
+  sizePx     Float
+  usage      String  // headline | subheadline | body | caption | stat
+  confidence Float
+
+  @@index([projectId])
+}
+
+model Reconstruction {
+  id         String   @id @default(cuid())
+  projectId  String
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  version    Int
+  scene      Json     // full editable scene graph
+  fidelity   Float?   // similarity vs original, 0..1
+  createdAt  DateTime @default(now())
+
+  @@unique([projectId, version])
+}
+
+model Export {
+  id         String       @id @default(cuid())
+  projectId  String
+  project    Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  format     ExportFormat
+  storageUrl String?
+  sizeBytes  Int?
+  createdAt  DateTime     @default(now())
+
+  @@index([userId])
+}
+
+model AnalysisResult {
+  id           String         @id @default(cuid())
+  projectId    String
+  project      Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  status       AnalysisStatus @default(QUEUED)
+  engines      String[]       // e.g. ["local", "openai", "gemini", "claude"]
+  designType   String?
+  confidence   Float?
+  dnaScores    Json?
+  raw          Json
+  durationMs   Int?
+  error        String?
+  createdAt    DateTime       @default(now())
+
+  @@index([projectId])
+}
