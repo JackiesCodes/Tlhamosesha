@@ -36,7 +36,10 @@ export async function putProject(p: Project) {
   fetch("/api/projects", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ id: p.id, name: p.name, analysis: p.analysis, scene: p.scene }),
+    // Inline images stay in the browser; this keeps requests under serverless body limits (4.5 MB on Vercel).
+    body: JSON.stringify({ id: p.id, name: p.name, analysis: p.analysis, scene: p.scene }, (_k, v) =>
+      typeof v === "string" && v.startsWith("data:") ? `[inline:${Math.round(v.length / 1024)}KB]` : v,
+    ),
   }).catch(() => undefined);
 }
 
