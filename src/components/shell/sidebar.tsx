@@ -14,7 +14,7 @@ export function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle:
     <motion.aside
       animate={{ width: collapsed ? 76 : 248 }}
       transition={{ type: "spring", stiffness: 320, damping: 34 }}
-      className="relative hidden shrink-0 flex-col border-r border-white/[0.06] bg-surface/60 backdrop-blur-xl lg:flex"
+      className="relative hidden shrink-0 flex-col border-r border-white/[0.06] bg-surface lg:flex"
     >
       <div className={cn("flex h-16 items-center", collapsed ? "justify-center" : "px-5")}>
         <Link href="/" aria-label="Tlhamosesha AI home">
@@ -39,7 +39,7 @@ export function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle:
               {active && (
                 <motion.span
                   layoutId="nav-active"
-                  className="absolute inset-0 rounded-xl border border-brand/25 bg-gradient-to-r from-brand/15 to-transparent"
+                  className="absolute inset-0 rounded-xl bg-white/[0.07]"
                   transition={{ type: "spring", stiffness: 400, damping: 36 }}
                 />
               )}
@@ -58,7 +58,7 @@ export function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle:
       </nav>
 
       {!collapsed && (
-        <div className="mx-3 mb-3 rounded-2xl border border-brand/20 bg-gradient-to-br from-brand/10 via-plasma/[0.06] to-transparent p-4">
+        <div className="mx-3 mb-3 rounded-2xl border border-white/[0.07] bg-white/[0.02] p-4">
           <div className="flex items-center gap-2 text-sm font-semibold text-white">
             <Sparkles className="h-4 w-4 text-brand" /> Vision Ensemble
           </div>

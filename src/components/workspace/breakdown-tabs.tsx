@@ -163,7 +163,7 @@ function ObjectCard({ o, i, view, active, onView, onDownload }: { o: DetectedObj
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: Math.min(i * 0.03, 0.3) }}
-      className={cn("group overflow-hidden rounded-xl border bg-surface-sunken/60 transition", active ? "border-brand/60 shadow-glow" : "border-white/[0.06] hover:border-white/15")}
+      className={cn("group overflow-hidden rounded-xl border bg-surface-sunken/60 transition", active ? "border-brand ring-1 ring-brand" : "border-white/[0.06] hover:border-white/15")}
     >
       <div className={cn("relative flex aspect-square items-center justify-center p-3", view === "cutout" && "checkerboard")}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -408,7 +408,7 @@ function LayoutTab({ project }: { project: Project }) {
             width={Math.max(0, W - l.margins.left - l.margins.right)}
             height={Math.max(0, H - l.margins.top - l.margins.bottom)}
             fill="none"
-            stroke="#22D3EE"
+            stroke="#3B82F6"
             strokeDasharray={`${stroke * 6} ${stroke * 4}`}
             strokeWidth={stroke}
           />
@@ -431,7 +431,7 @@ function LayoutTab({ project }: { project: Project }) {
           ))}
         </svg>
         <div className="mt-3 flex flex-wrap gap-4 text-[11px] text-muted-foreground">
-          <Legend color="#22D3EE" label="Margins" />
+          <Legend color="#3B82F6" label="Margins" />
           <Legend color="#A78BFA" label="Column gutters" />
           <Legend color="#FBBF24" label="Row gutters" />
           <Legend color="#34D399" label="Image blocks" />
@@ -483,7 +483,7 @@ function MetadataTab({ project }: { project: Project }) {
   return (
     <div className="grid gap-6 lg:grid-cols-2">
       <div className="space-y-4">
-        <div className="rounded-xl border border-brand/25 bg-gradient-to-br from-brand/10 to-transparent p-5">
+        <div className="rounded-xl border border-brand/25 bg-brand/[0.06] p-5">
           <div className="panel-title text-brand/80">Estimated design type</div>
           <div className="mt-2 flex items-baseline justify-between gap-2">
             <span className="font-display text-2xl font-bold text-white">{m.designType.label}</span>

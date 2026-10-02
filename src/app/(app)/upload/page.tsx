@@ -107,8 +107,8 @@ function UploadView() {
                 {running && (
                   <>
                     <div className="absolute inset-0 rounded-xl bg-grid-faint [background-size:24px_24px]" />
-                    <div className="absolute inset-x-0 h-24 -translate-y-1/2 animate-scan bg-gradient-to-b from-transparent via-brand/25 to-transparent">
-                      <div className="absolute inset-x-0 top-1/2 h-px bg-brand shadow-[0_0_12px_2px_rgba(34,211,238,0.7)]" />
+                    <div className="absolute inset-x-0 h-24 -translate-y-1/2 animate-scan">
+                      <div className="absolute inset-x-0 top-1/2 h-px bg-brand" />
                     </div>
                   </>
                 )}

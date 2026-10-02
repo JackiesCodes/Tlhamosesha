@@ -141,10 +141,10 @@ export function Workspace({ id }: { id: string }) {
               onClick={() => setMode(x.id)}
               className={cn(
                 "relative flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition",
-                mode === x.id ? "text-ink" : "text-muted-foreground hover:text-white",
+                mode === x.id ? "text-white" : "text-muted-foreground hover:text-white",
               )}
             >
-              {mode === x.id && <motion.span layoutId="mode-pill" className="absolute inset-0 rounded-lg bg-brand-sheen" />}
+              {mode === x.id && <motion.span layoutId="mode-pill" className="absolute inset-0 rounded-lg bg-brand-600" />}
               <x.icon className="relative h-3.5 w-3.5" />
               <span className="relative">{x.label}</span>
             </button>

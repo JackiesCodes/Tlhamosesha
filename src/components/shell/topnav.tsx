@@ -39,7 +39,7 @@ export function TopNav({ onSearch }: { onSearch: () => void }) {
     .toUpperCase();
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-3 border-b border-white/[0.06] bg-ink/75 px-4 backdrop-blur-xl sm:px-6">
+    <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-3 border-b border-white/[0.06] bg-ink px-4 sm:px-6">
       <Link href="/" className="lg:hidden" aria-label="Home">
         <LogoMark className="h-8 w-8" />
       </Link>
@@ -47,7 +47,7 @@ export function TopNav({ onSearch }: { onSearch: () => void }) {
       {/* Workspace switcher */}
       <DropdownMenu>
         <DropdownMenuTrigger className="hidden items-center gap-2 rounded-xl border border-white/[0.06] bg-white/[0.03] py-1.5 pl-1.5 pr-3 text-sm transition hover:border-white/15 md:flex">
-          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-brand/80 to-brand-600 text-[11px] font-bold text-ink">
+          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-600 text-[11px] font-bold text-white">
             {settings.workspace.slice(0, 1)}
           </span>
           <span className="max-w-[140px] truncate font-medium">{settings.workspace}</span>
@@ -94,7 +94,7 @@ export function TopNav({ onSearch }: { onSearch: () => void }) {
             <Button variant="ghost" size="icon" className="relative" aria-label="Notifications">
               <Bell />
               {unread > 0 && (
-                <span className="absolute right-1.5 top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand px-1 text-[9px] font-bold text-ink">
+                <span className="absolute right-1.5 top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand-600 px-1 text-[9px] font-bold text-white">
                   {unread}
                 </span>
               )}
@@ -123,7 +123,7 @@ export function TopNav({ onSearch }: { onSearch: () => void }) {
         {/* Profile */}
         <DropdownMenu>
           <DropdownMenuTrigger className="flex items-center gap-2 rounded-xl p-1 transition hover:bg-white/[0.05]">
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-sky-400 to-indigo-600 text-xs font-bold">
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-surface-raised text-xs font-bold ring-1 ring-white/10">
               {initials}
             </span>
           </DropdownMenuTrigger>

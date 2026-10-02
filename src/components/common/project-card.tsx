@@ -23,13 +23,12 @@ export function ProjectCard({
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: Math.min(index * 0.04, 0.4), duration: 0.35 }}
-      className="group relative overflow-hidden rounded-2xl border border-white/[0.06] bg-surface/70 transition hover:border-brand/30 hover:shadow-glow"
+      className="group relative overflow-hidden rounded-2xl border border-white/[0.06] bg-surface/70 transition hover:border-white/15"
     >
       <Link href={`/projects/${p.id}`} className="block">
         <div className="relative aspect-[4/3] overflow-hidden bg-surface-sunken">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={p.thumbnail} alt={p.name} className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.04]" />
-          <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/10 to-transparent" />
           <Badge className="absolute left-3 top-3 border-white/10 bg-ink/70 text-white backdrop-blur">
             {p.designType} · {Math.round(p.confidence * 100)}%
           </Badge>

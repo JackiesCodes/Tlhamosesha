@@ -69,7 +69,7 @@ export function PreviewPanel({ project, className }: { project: Project; classNa
           </div>
 
           {previewMode === "split" && (
-            <div className="pointer-events-none absolute inset-y-0 w-0.5 bg-brand shadow-[0_0_10px_rgba(34,211,238,.8)]" style={{ left: `${split}%` }}>
+            <div className="pointer-events-none absolute inset-y-0 w-0.5 bg-brand" style={{ left: `${split}%` }}>
               <div className="absolute top-1/2 -ml-3 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full border-2 border-brand bg-ink text-[10px] text-brand">⇆</div>
             </div>
           )}

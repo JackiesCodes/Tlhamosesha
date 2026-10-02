@@ -45,8 +45,7 @@ export function Dropzone({ onFile, compact, className }: { onFile: (f: File) => 
         className,
       )}
     >
-      <div className="pointer-events-none absolute inset-0 bg-grid-faint [background-size:32px_32px] [mask-image:radial-gradient(ellipse_at_center,black,transparent_75%)]" />
-      <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl border border-brand/30 bg-brand/10 shadow-glow">
+      <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl border border-brand/30 bg-brand/10">
         <UploadCloud className="h-7 w-7 text-brand" />
       </div>
       <div className="relative">

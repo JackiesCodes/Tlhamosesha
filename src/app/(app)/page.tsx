@@ -49,13 +49,12 @@ export default function HomePage() {
           transition={{ duration: 0.5 }}
           className="panel relative flex flex-col justify-between overflow-hidden p-7 sm:p-10"
         >
-          <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-brand/10 blur-3xl" />
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-brand/25 bg-brand/10 px-3 py-1 text-xs font-medium text-brand-200">
               <Sparkles className="h-3.5 w-3.5" /> Good to see you, {name}
             </div>
             <h1 className="mt-5 font-display text-3xl font-bold leading-[1.1] tracking-tight text-white sm:text-5xl">
-              Reverse-engineer <span className="text-brand-gradient">any poster</span> into editable layers.
+              Reverse-engineer <span className="text-brand-400">any poster</span> into editable layers.
             </h1>
             <p className="mt-4 max-w-xl text-base text-muted-foreground">
               Tlhamosesha AI reads the text, isolates every object, rebuilds the background and maps the grid, then hands you a fully

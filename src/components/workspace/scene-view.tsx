@@ -152,7 +152,7 @@ export function SceneView({
                 height: l.height,
                 opacity: l.visible ? l.opacity : 0.25,
                 transform: l.rotation ? `rotate(${l.rotation}deg)` : undefined,
-                outline: hl ? `${2 / scale}px solid #22D3EE` : undefined,
+                outline: hl ? `${2 / scale}px solid #3B82F6` : undefined,
                 outlineOffset: hl ? 2 / scale : undefined,
               }}
             >
@@ -162,7 +162,7 @@ export function SceneView({
               }} />
               {selected && <Handles scale={scale} locked={l.locked} onHandle={(e, h) => begin(e, l, h)} />}
               {interactive && !selected && (
-                <div className="pointer-events-none absolute inset-0 opacity-0 transition hover:opacity-100" style={{ boxShadow: `inset 0 0 0 ${1 / scale}px rgba(34,211,238,.6)` }} />
+                <div className="pointer-events-none absolute inset-0 opacity-0 transition hover:opacity-100" style={{ boxShadow: `inset 0 0 0 ${1 / scale}px rgba(59,130,246,.6)` }} />
               )}
             </div>
           );
@@ -234,14 +234,14 @@ function Handles({ scale, locked, onHandle }: { scale: number; locked: boolean; 
   };
   return (
     <>
-      <div className="pointer-events-none absolute inset-0" style={{ boxShadow: `0 0 0 ${b}px ${locked ? "#64748b" : "#22D3EE"}` }} />
+      <div className="pointer-events-none absolute inset-0" style={{ boxShadow: `0 0 0 ${b}px ${locked ? "#64748b" : "#3B82F6"}` }} />
       {!locked &&
         (Object.keys(pos) as Exclude<Handle, "rot">[]).map((h) => (
           <div
             key={h}
             onPointerDown={(e) => onHandle(e, h)}
             className="absolute rounded-[2px] bg-white"
-            style={{ ...pos[h], width: s, height: s, boxShadow: `0 0 0 ${b}px #22D3EE` }}
+            style={{ ...pos[h], width: s, height: s, boxShadow: `0 0 0 ${b}px #3B82F6` }}
           />
         ))}
       {!locked && (

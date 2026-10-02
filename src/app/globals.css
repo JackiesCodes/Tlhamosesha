@@ -4,26 +4,26 @@
 
 @layer base {
   :root {
-    --background: 228 53% 4%;
-    --foreground: 210 40% 98%;
-    --card: 227 50% 8%;
-    --card-foreground: 210 40% 98%;
-    --popover: 227 48% 13%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 188 86% 53%;
-    --primary-foreground: 228 53% 4%;
-    --secondary: 228 40% 14%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 228 40% 14%;
-    --muted-foreground: 220 20% 66%;
-    --accent: 258 90% 66%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 350 89% 60%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 226 38% 17%;
-    --input: 226 38% 19%;
-    --ring: 188 86% 53%;
-    --radius: 0.75rem;
+    --background: 240 7% 6%;
+    --foreground: 0 0% 98%;
+    --card: 240 6% 10%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 5% 14%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 4% 16%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 4% 16%;
+    --muted-foreground: 240 5% 65%;
+    --accent: 240 4% 16%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 72% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 240 4% 17%;
+    --input: 240 4% 20%;
+    --ring: 217 91% 60%;
+    --radius: 0.625rem;
   }
 
   * {
@@ -40,31 +40,28 @@
   }
 
   ::selection {
-    background: rgba(34, 211, 238, 0.35);
+    background: rgba(59, 130, 246, 0.4);
   }
 }
 
 @layer components {
   .panel {
-    @apply rounded-2xl border border-white/[0.06] bg-surface/80 shadow-panel backdrop-blur-xl;
+    @apply rounded-xl border border-white/[0.07] bg-surface;
   }
   .panel-title {
     @apply text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground;
   }
-  .text-brand-gradient {
-    @apply bg-brand-sheen bg-clip-text text-transparent;
-  }
   .checkerboard {
-    background-color: #111830;
-    background-image: linear-gradient(45deg, #19213d 25%, transparent 25%),
-      linear-gradient(-45deg, #19213d 25%, transparent 25%),
-      linear-gradient(45deg, transparent 75%, #19213d 75%),
-      linear-gradient(-45deg, transparent 75%, #19213d 75%);
+    background-color: #1c1c20;
+    background-image: linear-gradient(45deg, #26262b 25%, transparent 25%),
+      linear-gradient(-45deg, #26262b 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, #26262b 75%),
+      linear-gradient(-45deg, transparent 75%, #26262b 75%);
     background-size: 16px 16px;
     background-position: 0 0, 0 8px, 8px -8px, -8px 0;
   }
   .scrollbar-thin {
     scrollbar-width: thin;
-    scrollbar-color: rgba(34, 211, 238, 0.18) transparent;
+    scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
   }
 }
