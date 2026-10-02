@@ -109,7 +109,7 @@ export async function sceneToPdf(scene: Scene) {
     `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${w} ${h}] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>`,
     null, // image
     `<< /Length ${content.length} >>\nstream\n${content}\nendstream`,
-    `<< /Producer (Tlhamosesha AI) /Title (Reconstruction) >>`,
+    `<< /Producer (Decon) /Title (Reconstruction) >>`,
   ];
   const parts: string[] = ["%PDF-1.4\n%\xE2\xE3\xCF\xD3\n"];
   const offsets: number[] = [];
@@ -139,7 +139,7 @@ const rgb01 = (hex: string) => {
 export function sceneToPsdJson(p: Project) {
   const s = p.scene;
   return {
-    $schema: "tlhamosesha/psd-style@1",
+    $schema: "decon/psd-style@1",
     document: { name: p.name, width: s.width, height: s.height, resolution: 72, colorMode: "RGB", bitsPerChannel: 8 },
     layers: [...s.layers].reverse().map((l) => ({
       id: l.id,
@@ -208,7 +208,7 @@ export function sceneToFigmaJson(p: Project) {
     };
   };
   return {
-    $schema: "tlhamosesha/figma-document@1",
+    $schema: "decon/figma-document@1",
     name: p.name,
     document: {
       id: "0:0",
@@ -247,7 +247,7 @@ export function sceneToFigmaJson(p: Project) {
 export function sceneToCanvaJson(p: Project) {
   const s = p.scene;
   return {
-    $schema: "tlhamosesha/canva-design@1",
+    $schema: "decon/canva-design@1",
     title: p.name,
     dimensions: { width: s.width, height: s.height, units: "px" },
     pages: [

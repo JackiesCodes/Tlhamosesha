@@ -1,5 +1,5 @@
 """
-Tlhamosesha AI — computer-vision microservice (reference implementation).
+Decon — computer-vision microservice (reference implementation).
 
 Implements the contract the Next.js app calls when VISION_SERVICE_URL is set:
 
@@ -27,7 +27,7 @@ SAM_CHECKPOINT = os.getenv("SAM_CHECKPOINT", "sam_vit_h_4b8939.pth")
 SAM_MODEL = os.getenv("SAM_MODEL", "vit_h")
 RETURN_MASKS = os.getenv("RETURN_MASKS", "1") == "1"
 
-# COCO class -> Tlhamosesha object kind
+# COCO class -> Decon object kind
 KIND = {
     "person": "person",
     "car": "vehicle", "truck": "vehicle", "bus": "vehicle", "motorcycle": "vehicle", "bicycle": "vehicle",
@@ -36,7 +36,7 @@ KIND = {
     "laptop": "product", "handbag": "product", "backpack": "product", "tie": "product", "suitcase": "product",
 }
 
-app = FastAPI(title="Tlhamosesha Vision Service")
+app = FastAPI(title="Decon Vision Service")
 _yolo = None
 _sam = None
 

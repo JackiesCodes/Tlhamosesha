@@ -3,9 +3,9 @@ import "./globals.css";
 import { THEME_SCRIPT } from "@/lib/theme-script";
 
 export const metadata: Metadata = {
-  title: { default: "Tlhamosesha AI — Poster reverse-engineering", template: "%s · Tlhamosesha AI" },
+  title: { default: "Decon — Visual Reverse Engineering", template: "%s · Decon" },
   description:
-    "Upload any poster, banner or infographic and Tlhamosesha AI breaks it into text, images, backgrounds, colours and layout — then rebuilds it as an editable design.",
+    "Upload any poster, banner or infographic and Decon breaks it into text, images, backgrounds, colours and layout — then rebuilds it as an editable design.",
   icons: { icon: "/icon.svg" },
 };
 

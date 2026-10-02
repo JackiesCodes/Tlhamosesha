@@ -70,7 +70,7 @@ export const useApp = create<AppState>()(
       notifications: [
         {
           id: "welcome",
-          title: "Welcome to Tlhamosesha AI",
+          title: "Welcome to Decon",
           body: "Upload a poster or try a sample to see it broken down into layers.",
           at: new Date().toISOString(),
           read: false,
@@ -84,6 +84,7 @@ export const useApp = create<AppState>()(
       markAllRead: () => set((st) => ({ notifications: st.notifications.map((n) => ({ ...n, read: true })) })),
       workspaces: ["Personal Studio", "Matchday Creative", "Brand Lab"],
     }),
+    // Storage key predates the Decon rename; kept so saved settings survive.
     { name: "tlhamosesha-app", version: 1 },
   ),
 );

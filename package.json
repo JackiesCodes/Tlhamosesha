@@ -1,8 +1,8 @@
 {
-  "name": "tlhamosesha-ai",
+  "name": "decon",
   "version": "0.1.0",
   "private": true,
-  "description": "Tlhamosesha AI — AI-powered poster reverse-engineering and reconstruction platform",
+  "description": "Decon — Visual Reverse Engineering: break posters and graphics into editable layers",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

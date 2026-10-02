@@ -17,7 +17,7 @@ export function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle:
       className="relative hidden shrink-0 flex-col border-r border-white/[0.06] bg-surface lg:flex"
     >
       <div className={cn("flex h-16 items-center", collapsed ? "justify-center" : "px-5")}>
-        <Link href="/" aria-label="Tlhamosesha AI home">
+        <Link href="/" aria-label="Decon home">
           <Logo collapsed={collapsed} />
         </Link>
       </div>

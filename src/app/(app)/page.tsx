@@ -57,7 +57,7 @@ export default function HomePage() {
               Reverse-engineer <span className="text-brand-400">any poster</span> into editable layers.
             </h1>
             <p className="mt-4 max-w-xl text-base text-muted-foreground">
-              Tlhamosesha AI reads the text, isolates every object, rebuilds the background and maps the grid, then hands you a fully
+              Decon reads the text, isolates every object, rebuilds the background and maps the grid, then hands you a fully
               editable reconstruction.
             </p>
           </div>

@@ -1,4 +1,5 @@
 // Shared by the server layout (inline <head> script) and the client theme hook.
+// Key predates the Decon rename; kept so saved theme choices survive.
 export const THEME_KEY = "tl-theme";
 
 /** Runs in <head> before React; applies the saved theme so there is no flash. */

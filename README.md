@@ -1,8 +1,8 @@
-# Tlhamosesha AI
+# Decon — Visual Reverse Engineering
 
 **Reverse-engineer any poster into editable layers.**
 
-Upload a poster, sports graphic, banner, flyer, infographic, ad, magazine page, diagram or artwork. Tlhamosesha AI breaks it down into its text, objects, logos, background layers, colour system and layout grid, then rebuilds it as a fully editable, layered design you can export again.
+Upload a poster, sports graphic, banner, flyer, infographic, ad, magazine page, diagram or artwork. Decon breaks it down into its text, objects, logos, background layers, colour system and layout grid, then rebuilds it as a fully editable, layered design you can export again.
 
 ![stack](https://img.shields.io/badge/Next.js-15-black) ![ts](https://img.shields.io/badge/TypeScript-strict-3178c6) ![tailwind](https://img.shields.io/badge/Tailwind-shadcn%2Fui-38bdf8) ![prisma](https://img.shields.io/badge/Prisma-PostgreSQL-2d3748)
 

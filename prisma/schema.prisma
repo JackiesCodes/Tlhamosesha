@@ -1,4 +1,4 @@
-// Tlhamosesha AI — database schema
+// Decon — database schema
 // Run `npm run db:push` after setting DATABASE_URL.
 
 generator client {

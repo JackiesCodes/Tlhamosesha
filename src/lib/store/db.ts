@@ -3,6 +3,7 @@ import { createStore, del, get, set, values } from "idb-keyval";
 import type { Project, ProjectSummary } from "../types";
 
 const isBrowser = typeof indexedDB !== "undefined";
+// IndexedDB names predate the Decon rename; kept so saved projects survive.
 const projectsStore = isBrowser ? createStore("tlhamosesha-projects", "projects") : undefined;
 const summaryStore = isBrowser ? createStore("tlhamosesha-summaries", "summaries") : undefined;
 
