@@ -78,11 +78,11 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
       // eslint-disable-next-line @next/next/no-img-element
       <img src={h.image} alt="" className="checkerboard h-8 w-8 rounded-md object-contain" />
     ) : h.type === "text" ? (
-      <Type className="h-4 w-4 text-sky-300" />
+      <Type className="h-4 w-4 text-sky-700 dark:text-sky-300" />
     ) : h.type === "layer" ? (
-      <Layers className="h-4 w-4 text-violet-300" />
+      <Layers className="h-4 w-4 text-violet-700 dark:text-violet-300" />
     ) : (
-      <ImageIcon className="h-4 w-4 text-emerald-300" />
+      <ImageIcon className="h-4 w-4 text-emerald-700 dark:text-emerald-300" />
     );
 
   let idx = -1;
@@ -101,7 +101,7 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
             }}
             onKeyDown={onKey}
             placeholder={inProject ? "Ask the breakdown… “Show sponsor logos”" : "Search projects, pages and commands…"}
-            className="h-14 flex-1 bg-transparent text-[15px] text-white outline-none placeholder:text-slate-500"
+            className="h-14 flex-1 bg-transparent text-[15px] text-white outline-none placeholder:text-muted-foreground"
           />
           <Kbd>esc</Kbd>
         </div>
@@ -115,7 +115,7 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
                   <button
                     key={s}
                     onClick={() => setQ(s)}
-                    className="rounded-full border border-white/[0.08] bg-white/[0.03] px-3 py-1.5 text-xs text-slate-300 transition hover:border-brand/40 hover:text-white"
+                    className="rounded-full border border-white/[0.08] bg-white/[0.03] px-3 py-1.5 text-xs text-white/80 transition hover:border-brand/40 hover:text-white"
                   >
                     {s}
                   </button>

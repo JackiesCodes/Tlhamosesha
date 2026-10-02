@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
+import { ThemeSegmented } from "@/components/shell/theme-toggle";
 import { useApp } from "@/lib/store/app";
 
 interface Health {
@@ -84,6 +85,13 @@ export default function SettingsPage() {
             </div>
             <Slider value={[settings.maxObjects]} min={4} max={30} step={1} onValueChange={([v]) => setSettings({ maxObjects: v })} />
           </div>
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <div className="text-sm text-white">Appearance</div>
+              <div className="text-xs text-muted-foreground">Light, dark, or follow your device setting.</div>
+            </div>
+            <ThemeSegmented />
+          </div>
           <ToggleRow label="Reduce motion" hint="Minimise interface animations." checked={settings.reduceMotion} onChange={(v) => setSettings({ reduceMotion: v })} />
         </CardContent>
       </Card>
@@ -128,7 +136,7 @@ export default function SettingsPage() {
           <CardTitle className="flex items-center gap-2"><KeyRound className="h-4 w-4 text-brand" /> Environment reference</CardTitle>
         </CardHeader>
         <CardContent>
-          <pre className="scrollbar-thin overflow-x-auto rounded-xl bg-surface-sunken p-4 font-mono text-xs leading-relaxed text-slate-300">{`OPENAI_API_KEY=...        # OpenAI Vision
+          <pre className="scrollbar-thin overflow-x-auto rounded-xl bg-surface-sunken p-4 font-mono text-xs leading-relaxed text-white/80">{`OPENAI_API_KEY=...        # OpenAI Vision
 GEMINI_API_KEY=...        # Gemini Vision
 ANTHROPIC_API_KEY=...     # Claude Vision
 VISION_SERVICE_URL=...    # YOLO + SAM + rembg microservice (services/vision)
@@ -143,11 +151,11 @@ function EngineRow({ label, detail, status }: { label: string; detail: string; s
   return (
     <div className="flex min-w-0 items-center gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
       {status === "on" ? (
-        <CheckCircle2 className="h-5 w-5 text-emerald-400" />
+        <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
       ) : status === "off" ? (
-        <XCircle className="h-5 w-5 text-slate-500" />
+        <XCircle className="h-5 w-5 text-muted-foreground" />
       ) : (
-        <CircleDashed className="h-5 w-5 text-slate-500" />
+        <CircleDashed className="h-5 w-5 text-muted-foreground" />
       )}
       <div className="min-w-0">
         <div className="text-sm font-medium text-white">{label}</div>

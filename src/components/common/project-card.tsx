@@ -41,7 +41,7 @@ export function ProjectCard({
           <div className="mt-1 text-xs text-muted-foreground">
             {p.width}×{p.height} · edited {timeAgo(p.updatedAt)}
           </div>
-          <div className="mt-3 flex items-center gap-3 text-[11px] text-slate-400">
+          <div className="mt-3 flex items-center gap-3 text-[11px] text-muted-foreground">
             <span className="flex items-center gap-1"><Type className="h-3 w-3" />{p.counts.texts}</span>
             <span className="flex items-center gap-1"><Shapes className="h-3 w-3" />{p.counts.objects}</span>
             <span className="flex items-center gap-1"><Palette className="h-3 w-3" />{p.counts.colors}</span>
@@ -69,8 +69,8 @@ export function ProjectCard({
                 <MoreHorizontal className="h-4 w-4" />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onSelect={onDelete} className="text-rose-300 focus:text-rose-200">
-                  <Trash2 className="!text-rose-300" /> Delete project
+                <DropdownMenuItem onSelect={onDelete} className="text-rose-700 dark:text-rose-300 focus:text-rose-800 focus:dark:text-rose-200">
+                  <Trash2 className="!text-rose-700 dark:!text-rose-300" /> Delete project
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

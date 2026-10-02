@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { THEME_SCRIPT } from "@/lib/theme-script";
 
 export const metadata: Metadata = {
   title: { default: "Tlhamosesha AI — Poster reverse-engineering", template: "%s · Tlhamosesha AI" },
@@ -9,7 +10,10 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0E0E10",
+  themeColor: [
+    { media: "(prefers-color-scheme: dark)", color: "#0E0E10" },
+    { media: "(prefers-color-scheme: light)", color: "#F4F4F6" },
+  ],
   width: "device-width",
   initialScale: 1,
 };
@@ -19,8 +23,9 @@ const FONTS =
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className="dark" suppressHydrationWarning>
       <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link rel="stylesheet" href={FONTS} />

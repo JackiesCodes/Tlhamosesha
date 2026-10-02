@@ -3,7 +3,25 @@
 @tailwind utilities;
 
 @layer base {
+  /* Dark theme (default) */
   :root {
+    --ink: 14 14 16;
+    --surface: 24 24 27;
+    --surface-raised: 34 34 38;
+    --surface-sunken: 19 19 22;
+    --fg: 255 255 255;
+    --brand: 59 130 246;
+    --brand-50: 239 246 255;
+    --brand-100: 219 234 254;
+    --brand-200: 191 219 254;
+    --brand-300: 147 197 253;
+    --brand-400: 96 165 250;
+    --brand-500: 59 130 246;
+    --brand-600: 37 99 235;
+    --brand-700: 29 78 216;
+    --checker-a: #1c1c20;
+    --checker-b: #26262b;
+
     --background: 240 7% 6%;
     --foreground: 0 0% 98%;
     --card: 240 6% 10%;
@@ -24,14 +42,53 @@
     --input: 240 4% 20%;
     --ring: 217 91% 60%;
     --radius: 0.625rem;
+    color-scheme: dark;
+  }
+
+  /* Light theme: off-white canvas, white panels, near-black ink. Accent
+     text shades are deepened so blue text keeps WCAG AA contrast on white. */
+  html.light {
+    --ink: 244 244 246;
+    --surface: 255 255 255;
+    --surface-raised: 255 255 255;
+    --surface-sunken: 240 240 243;
+    --fg: 24 24 27;
+    --brand: 37 99 235;
+    --brand-50: 23 37 84;
+    --brand-100: 30 58 138;
+    --brand-200: 30 64 175;
+    --brand-300: 29 78 216;
+    --brand-400: 37 99 235;
+    --brand-500: 59 130 246;
+    --brand-600: 37 99 235;
+    --brand-700: 29 78 216;
+    --checker-a: #f1f1f4;
+    --checker-b: #e3e3e8;
+
+    --background: 240 9% 96%;
+    --foreground: 240 6% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 6% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 6% 10%;
+    --primary: 221 83% 53%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 5% 94%;
+    --secondary-foreground: 240 6% 10%;
+    --muted: 240 5% 94%;
+    --muted-foreground: 240 4% 40%;
+    --accent: 240 5% 94%;
+    --accent-foreground: 240 6% 10%;
+    --destructive: 0 72% 48%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 240 6% 88%;
+    --input: 240 6% 85%;
+    --ring: 221 83% 53%;
+    color-scheme: light;
   }
 
   * {
     @apply border-border;
-  }
-
-  html {
-    color-scheme: dark;
   }
 
   body {
@@ -48,20 +105,23 @@
   .panel {
     @apply rounded-xl border border-white/[0.07] bg-surface;
   }
+  html.light .panel {
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.04);
+  }
   .panel-title {
     @apply text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground;
   }
   .checkerboard {
-    background-color: #1c1c20;
-    background-image: linear-gradient(45deg, #26262b 25%, transparent 25%),
-      linear-gradient(-45deg, #26262b 25%, transparent 25%),
-      linear-gradient(45deg, transparent 75%, #26262b 75%),
-      linear-gradient(-45deg, transparent 75%, #26262b 75%);
+    background-color: var(--checker-a);
+    background-image: linear-gradient(45deg, var(--checker-b) 25%, transparent 25%),
+      linear-gradient(-45deg, var(--checker-b) 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, var(--checker-b) 75%),
+      linear-gradient(-45deg, transparent 75%, var(--checker-b) 75%);
     background-size: 16px 16px;
     background-position: 0 0, 0 8px, 8px -8px, -8px 0;
   }
   .scrollbar-thin {
     scrollbar-width: thin;
-    scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
+    scrollbar-color: rgb(var(--fg) / 0.16) transparent;
   }
 }

@@ -154,7 +154,7 @@ function UploadView() {
               <div className="mt-auto pt-6">
                 {error ? (
                   <div className="space-y-3">
-                    <div className="flex items-start gap-2 rounded-xl border border-rose-400/30 bg-rose-400/10 p-3 text-sm text-rose-200">
+                    <div className="flex items-start gap-2 rounded-xl border border-rose-400/30 bg-rose-400/10 p-3 text-sm text-rose-800 dark:text-rose-200">
                       <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" /> {error}
                     </div>
                     <Button variant="secondary" className="w-full" onClick={() => reset()}>
@@ -187,9 +187,9 @@ function UploadView() {
 }
 
 function StepIcon({ status }: { status: string }) {
-  if (status === "done") return <Check className="h-4 w-4 text-emerald-400" />;
+  if (status === "done") return <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />;
   if (status === "active") return <Loader2 className="h-4 w-4 animate-spin text-brand" />;
-  if (status === "skipped") return <MinusCircle className="h-4 w-4 text-slate-500" />;
-  if (status === "error") return <AlertTriangle className="h-4 w-4 text-rose-400" />;
-  return <Circle className="h-4 w-4 text-slate-600" />;
+  if (status === "skipped") return <MinusCircle className="h-4 w-4 text-muted-foreground" />;
+  if (status === "error") return <AlertTriangle className="h-4 w-4 text-rose-600 dark:text-rose-400" />;
+  return <Circle className="h-4 w-4 text-muted-foreground" />;
 }

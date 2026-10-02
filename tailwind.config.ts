@@ -8,24 +8,29 @@ const config: Config = {
     container: { center: true, padding: "1.5rem", screens: { "2xl": "1440px" } },
     extend: {
       colors: {
-        // Graphite + single accent, in the style of Figma / Linear / Photopea:
-        // neutral chrome, one solid accent for actions and selection, no gradients.
-        ink: "#0E0E10",
+        // Graphite + single accent, in the style of Figma / Linear / Photopea.
+        // Values live in CSS variables (globals.css) so light and dark themes
+        // swap without touching components. `white` is the theme's foreground
+        // ink (white in dark mode, near-black in light mode); `onbrand` is a
+        // true white for text sitting on the blue accent.
+        white: "rgb(var(--fg) / <alpha-value>)",
+        onbrand: "#FFFFFF",
+        ink: "rgb(var(--ink) / <alpha-value>)",
         surface: {
-          DEFAULT: "#18181B",
-          raised: "#222226",
-          sunken: "#131316",
+          DEFAULT: "rgb(var(--surface) / <alpha-value>)",
+          raised: "rgb(var(--surface-raised) / <alpha-value>)",
+          sunken: "rgb(var(--surface-sunken) / <alpha-value>)",
         },
         brand: {
-          DEFAULT: "#3B82F6",
-          50: "#EFF6FF",
-          100: "#DBEAFE",
-          200: "#BFDBFE",
-          300: "#93C5FD",
-          400: "#60A5FA",
-          500: "#3B82F6",
-          600: "#2563EB",
-          700: "#1D4ED8",
+          DEFAULT: "rgb(var(--brand) / <alpha-value>)",
+          50: "rgb(var(--brand-50) / <alpha-value>)",
+          100: "rgb(var(--brand-100) / <alpha-value>)",
+          200: "rgb(var(--brand-200) / <alpha-value>)",
+          300: "rgb(var(--brand-300) / <alpha-value>)",
+          400: "rgb(var(--brand-400) / <alpha-value>)",
+          500: "rgb(var(--brand-500) / <alpha-value>)",
+          600: "rgb(var(--brand-600) / <alpha-value>)",
+          700: "rgb(var(--brand-700) / <alpha-value>)",
         },
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -55,7 +60,7 @@ const config: Config = {
       },
       backgroundImage: {
         "grid-faint":
-          "linear-gradient(rgba(255,255,255,0.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.035) 1px,transparent 1px)",
+          "linear-gradient(rgb(var(--fg) / 0.04) 1px,transparent 1px),linear-gradient(90deg,rgb(var(--fg) / 0.04) 1px,transparent 1px)",
       },
       keyframes: {
         shimmer: { "0%": { backgroundPosition: "-200% 0" }, "100%": { backgroundPosition: "200% 0" } },

@@ -58,7 +58,7 @@ export function Dropzone({ onFile, compact, className }: { onFile: (f: File) => 
         </Button>
         <span className="text-xs text-muted-foreground">or paste · PNG JPG WEBP SVG · up to 25 MB</span>
       </div>
-      {error && <p className="relative text-sm text-rose-300">{error}</p>}
+      {error && <p className="relative text-sm text-rose-700 dark:text-rose-300">{error}</p>}
       <input
         ref={input}
         type="file"

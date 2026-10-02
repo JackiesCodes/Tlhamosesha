@@ -123,7 +123,7 @@ export function Workspace({ id }: { id: string }) {
               {m.width}×{m.height} · {m.aspectRatio}
             </span>
             <span className="flex items-center gap-1">
-              {saving || dirty ? <Cloud className="h-3 w-3 animate-pulse" /> : <Check className="h-3 w-3 text-emerald-400" />}
+              {saving || dirty ? <Cloud className="h-3 w-3 animate-pulse" /> : <Check className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />}
               {saving || dirty ? "Saving…" : "Saved"}
             </span>
           </div>
@@ -141,7 +141,7 @@ export function Workspace({ id }: { id: string }) {
               onClick={() => setMode(x.id)}
               className={cn(
                 "relative flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition",
-                mode === x.id ? "text-white" : "text-muted-foreground hover:text-white",
+                mode === x.id ? "text-onbrand" : "text-muted-foreground hover:text-onbrand",
               )}
             >
               {mode === x.id && <motion.span layoutId="mode-pill" className="absolute inset-0 rounded-lg bg-brand-600" />}

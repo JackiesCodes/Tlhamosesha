@@ -240,7 +240,7 @@ function Handles({ scale, locked, onHandle }: { scale: number; locked: boolean; 
           <div
             key={h}
             onPointerDown={(e) => onHandle(e, h)}
-            className="absolute rounded-[2px] bg-white"
+            className="absolute rounded-[2px] bg-onbrand"
             style={{ ...pos[h], width: s, height: s, boxShadow: `0 0 0 ${b}px #3B82F6` }}
           />
         ))}

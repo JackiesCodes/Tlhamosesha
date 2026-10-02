@@ -47,11 +47,11 @@ export function LayerList({ className }: { className?: string }) {
             onClick={() => select(l.id)}
             className={cn(
               "group flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm transition",
-              active ? "bg-brand/[0.12] text-white ring-1 ring-brand/30" : "text-slate-300 hover:bg-white/[0.04]",
+              active ? "bg-brand/[0.12] text-white ring-1 ring-brand/30" : "text-white/80 hover:bg-white/[0.04]",
               hl && !active && "bg-brand/[0.05]",
             )}
           >
-            <span className="w-5 text-right font-mono text-[10px] text-slate-500">{layers.length - i}</span>
+            <span className="w-5 text-right font-mono text-[10px] text-muted-foreground">{layers.length - i}</span>
             <span className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-md border border-white/[0.06] bg-surface-sunken">
               {"src" in l ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -66,7 +66,7 @@ export function LayerList({ className }: { className?: string }) {
                 e.stopPropagation();
                 updateLayer(l.id, { locked: !l.locked });
               }}
-              className={cn("rounded p-1 text-slate-500 hover:text-white", !l.locked && "opacity-0 group-hover:opacity-100")}
+              className={cn("rounded p-1 text-muted-foreground hover:text-white", !l.locked && "opacity-0 group-hover:opacity-100")}
               aria-label={l.locked ? "Unlock" : "Lock"}
             >
               {l.locked ? <Lock className="h-3.5 w-3.5" /> : <Unlock className="h-3.5 w-3.5" />}
@@ -76,7 +76,7 @@ export function LayerList({ className }: { className?: string }) {
                 e.stopPropagation();
                 updateLayer(l.id, { visible: !l.visible });
               }}
-              className={cn("rounded p-1 text-slate-500 hover:text-white", l.visible && "opacity-0 group-hover:opacity-100")}
+              className={cn("rounded p-1 text-muted-foreground hover:text-white", l.visible && "opacity-0 group-hover:opacity-100")}
               aria-label={l.visible ? "Hide" : "Show"}
             >
               {l.visible ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
@@ -324,7 +324,7 @@ function IconBtn({ label, icon: Icon, onClick, danger }: { label: string; icon: 
         aria-label={label}
         className={cn(
           "flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.06] text-muted-foreground transition hover:border-white/15 hover:text-white",
-          danger && "hover:border-rose-400/40 hover:text-rose-300",
+          danger && "hover:border-rose-400/40 hover:text-rose-700 hover:dark:text-rose-300",
         )}
       >
         <Icon className="h-3.5 w-3.5" />

@@ -97,7 +97,7 @@ function BarCard({ title, description, rows, max }: { title: string; description
         {rows.length === 0 && <p className="text-sm text-muted-foreground">No data yet.</p>}
         {rows.map((r) => (
           <div key={r.label} className="group grid grid-cols-[120px_1fr_40px] items-center gap-3 text-sm" title={`${r.label}: ${r.value}`}>
-            <span className="flex items-center gap-2 truncate capitalize text-slate-300">
+            <span className="flex items-center gap-2 truncate capitalize text-white/80">
               {r.swatch && <span className="h-2.5 w-2.5 shrink-0 rounded-full border border-white/20" style={{ background: r.swatch }} />}
               {r.label}
             </span>

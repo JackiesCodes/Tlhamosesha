@@ -15,6 +15,7 @@ import { Kbd } from "@/components/ui/kbd";
 import { useApp } from "@/lib/store/app";
 import { cn, timeAgo } from "@/lib/utils";
 import { LogoMark } from "./logo";
+import { ThemeToggle } from "./theme-toggle";
 
 export function TopNav({ onSearch }: { onSearch: () => void }) {
   const { settings, setSettings, workspaces, notifications, markAllRead } = useApp();
@@ -47,7 +48,7 @@ export function TopNav({ onSearch }: { onSearch: () => void }) {
       {/* Workspace switcher */}
       <DropdownMenu>
         <DropdownMenuTrigger className="hidden items-center gap-2 rounded-xl border border-white/[0.06] bg-white/[0.03] py-1.5 pl-1.5 pr-3 text-sm transition hover:border-white/15 md:flex">
-          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-600 text-[11px] font-bold text-white">
+          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-600 text-[11px] font-bold text-onbrand">
             {settings.workspace.slice(0, 1)}
           </span>
           <span className="max-w-[140px] truncate font-medium">{settings.workspace}</span>
@@ -88,13 +89,15 @@ export function TopNav({ onSearch }: { onSearch: () => void }) {
           </Link>
         </Button>
 
+        <ThemeToggle />
+
         {/* Notifications */}
         <DropdownMenu onOpenChange={(o) => !o && unread && markAllRead()}>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="relative" aria-label="Notifications">
               <Bell />
               {unread > 0 && (
-                <span className="absolute right-1.5 top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand-600 px-1 text-[9px] font-bold text-white">
+                <span className="absolute right-1.5 top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand-600 px-1 text-[9px] font-bold text-onbrand">
                   {unread}
                 </span>
               )}
@@ -111,7 +114,7 @@ export function TopNav({ onSearch }: { onSearch: () => void }) {
                     <span className="min-w-0">
                       <span className="block text-sm font-medium text-white">{n.title}</span>
                       <span className="block text-xs leading-snug text-muted-foreground">{n.body}</span>
-                      <span className="mt-1 block text-[10px] text-slate-500">{timeAgo(n.at)}</span>
+                      <span className="mt-1 block text-[10px] text-muted-foreground">{timeAgo(n.at)}</span>
                     </span>
                   </Link>
                 </DropdownMenuItem>

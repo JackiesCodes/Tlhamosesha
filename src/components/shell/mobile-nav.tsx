@@ -23,7 +23,7 @@ export function MobileNav() {
           return (
             <Link key={it.href} href={it.href} className="flex flex-col items-center gap-1 py-2.5 text-[10px] font-medium">
               {it.primary ? (
-                <span className="-mt-6 flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-600 text-white">
+                <span className="-mt-6 flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-600 text-onbrand">
                   <it.icon className="h-5 w-5" />
                 </span>
               ) : (

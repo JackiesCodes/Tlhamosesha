@@ -279,7 +279,7 @@ function TypographyTab({ project }: { project: Project }) {
             <span>
               <Badge variant={ROLE_STYLE[t.role] as "default"} className="capitalize">{t.role}</Badge>
             </span>
-            <span className="text-xs text-slate-300">
+            <span className="text-xs text-white/80">
               {t.font.family} · {t.font.weight}
               <span className="block text-[10px] text-muted-foreground">
                 {t.font.category}
@@ -399,7 +399,7 @@ function LayoutTab({ project }: { project: Project }) {
           </button>
         </div>
         <svg viewBox={`0 0 ${W} ${H}`} className="mx-auto max-h-[60vh] w-full" style={{ aspectRatio: `${W}/${H}` }}>
-          <rect width={W} height={H} fill="#0A1224" />
+          <rect width={W} height={H} style={{ fill: "rgb(var(--surface-sunken))" }} />
           {showImage && <image href={project.original} width={W} height={H} opacity={0.18} />}
           {/* margins */}
           <rect
@@ -559,7 +559,7 @@ function DnaTab({ project }: { project: Project }) {
               {x.s.checks.map((c) => (
                 <div key={c.label}>
                   <div className="mb-1 flex justify-between text-xs">
-                    <span className="text-slate-200">{c.label}</span>
+                    <span className="text-white/80">{c.label}</span>
                     <span className="font-mono text-muted-foreground">{c.score}</span>
                   </div>
                   <Progress value={c.score} tone="auto" />
@@ -580,7 +580,7 @@ function ScoreRing({ label, value, big }: { label: string; value: number; big?: 
   return (
     <div className={cn("flex items-center gap-4 rounded-xl border p-4", big ? "border-brand/30 bg-brand/[0.06]" : "border-white/[0.06] bg-surface-sunken/50")}>
       <svg viewBox="0 0 80 80" className="h-16 w-16 -rotate-90">
-        <circle cx="40" cy="40" r={r} fill="none" stroke="rgba(255,255,255,.07)" strokeWidth="7" />
+        <circle cx="40" cy="40" r={r} fill="none" style={{ stroke: "rgb(var(--fg) / 0.08)" }} strokeWidth="7" />
         <motion.circle
           cx="40"
           cy="40"
@@ -618,7 +618,7 @@ function CopyButton({ value, label }: { value: string; label?: string }) {
       }}
       aria-label={`Copy ${value}`}
     >
-      {done ? <Check className="text-emerald-400" /> : <Copy />}
+      {done ? <Check className="text-emerald-600 dark:text-emerald-400" /> : <Copy />}
       {label}
     </Button>
   );
