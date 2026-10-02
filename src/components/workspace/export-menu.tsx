@@ -52,7 +52,7 @@ export function ExportMenu({ project, compact }: { project: Project; compact?: b
         <DropdownMenuLabel>Export reconstruction</DropdownMenuLabel>
         {EXPORT_FORMATS.map((f) => (
           <DropdownMenuItem key={f.id} onSelect={() => run(f.id)}>
-            <span className="w-24 font-mono text-xs font-semibold text-gold">{f.label}</span>
+            <span className="w-24 font-mono text-xs font-semibold text-brand">{f.label}</span>
             <span className="text-xs text-muted-foreground">{f.description}</span>
           </DropdownMenuItem>
         ))}

@@ -39,11 +39,11 @@ export function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle:
               {active && (
                 <motion.span
                   layoutId="nav-active"
-                  className="absolute inset-0 rounded-xl border border-gold/25 bg-gradient-to-r from-gold/15 to-transparent"
+                  className="absolute inset-0 rounded-xl border border-brand/25 bg-gradient-to-r from-brand/15 to-transparent"
                   transition={{ type: "spring", stiffness: 400, damping: 36 }}
                 />
               )}
-              <item.icon className={cn("relative h-[18px] w-[18px]", active && "text-gold")} />
+              <item.icon className={cn("relative h-[18px] w-[18px]", active && "text-brand")} />
               {!collapsed && <span className="relative">{item.label}</span>}
             </Link>
           );
@@ -58,14 +58,14 @@ export function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle:
       </nav>
 
       {!collapsed && (
-        <div className="mx-3 mb-3 rounded-2xl border border-gold/20 bg-gradient-to-br from-gold/10 via-transparent to-transparent p-4">
+        <div className="mx-3 mb-3 rounded-2xl border border-brand/20 bg-gradient-to-br from-brand/10 via-plasma/[0.06] to-transparent p-4">
           <div className="flex items-center gap-2 text-sm font-semibold text-white">
-            <Sparkles className="h-4 w-4 text-gold" /> Vision Ensemble
+            <Sparkles className="h-4 w-4 text-brand" /> Vision Ensemble
           </div>
           <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
             Connect OpenAI, Gemini or Claude Vision to improve detection and font matching.
           </p>
-          <Link href="/settings" className="mt-3 inline-block text-xs font-semibold text-gold hover:underline">
+          <Link href="/settings" className="mt-3 inline-block text-xs font-semibold text-brand hover:underline">
             Configure engines →
           </Link>
         </div>

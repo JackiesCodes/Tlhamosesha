@@ -24,7 +24,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <MotionConfig reducedMotion={reduceMotion ? "always" : "user"}>
       <TooltipProvider>
         <div className="flex min-h-dvh bg-ink">
-          <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(212,175,55,0.08),transparent_50%),radial-gradient(ellipse_at_bottom_left,rgba(59,111,216,0.08),transparent_55%)]" />
+          <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(34,211,238,0.09),transparent_50%),radial-gradient(ellipse_at_bottom_left,rgba(139,92,246,0.10),transparent_55%)]" />
           <Sidebar collapsed={collapsed} onToggle={() => setCollapsed((c) => !c)} />
           <div className="relative flex min-w-0 flex-1 flex-col">
             <TopNav onSearch={openSearch} />

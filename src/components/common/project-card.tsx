@@ -23,7 +23,7 @@ export function ProjectCard({
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: Math.min(index * 0.04, 0.4), duration: 0.35 }}
-      className="group relative overflow-hidden rounded-2xl border border-white/[0.06] bg-surface/70 transition hover:border-gold/30 hover:shadow-glow"
+      className="group relative overflow-hidden rounded-2xl border border-white/[0.06] bg-surface/70 transition hover:border-brand/30 hover:shadow-glow"
     >
       <Link href={`/projects/${p.id}`} className="block">
         <div className="relative aspect-[4/3] overflow-hidden bg-surface-sunken">
@@ -33,7 +33,7 @@ export function ProjectCard({
           <Badge className="absolute left-3 top-3 border-white/10 bg-ink/70 text-white backdrop-blur">
             {p.designType} · {Math.round(p.confidence * 100)}%
           </Badge>
-          <div className="absolute bottom-3 right-3 flex h-10 w-10 items-center justify-center rounded-full border border-gold/40 bg-ink/80 text-xs font-bold text-gold backdrop-blur">
+          <div className="absolute bottom-3 right-3 flex h-10 w-10 items-center justify-center rounded-full border border-brand/40 bg-ink/80 text-xs font-bold text-brand backdrop-blur">
             {p.dnaOverall}
           </div>
         </div>
@@ -58,10 +58,10 @@ export function ProjectCard({
               aria-label="Star project"
               className={cn(
                 "flex h-8 w-8 items-center justify-center rounded-lg bg-ink/70 backdrop-blur transition",
-                p.starred ? "text-gold" : "text-white/60 opacity-0 hover:text-white group-hover:opacity-100",
+                p.starred ? "text-brand" : "text-white/60 opacity-0 hover:text-white group-hover:opacity-100",
               )}
             >
-              <Star className={cn("h-4 w-4", p.starred && "fill-gold")} />
+              <Star className={cn("h-4 w-4", p.starred && "fill-brand")} />
             </button>
           )}
           {onDelete && (

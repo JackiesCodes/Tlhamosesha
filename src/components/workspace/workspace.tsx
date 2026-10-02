@@ -82,7 +82,7 @@ export function Workspace({ id }: { id: string }) {
   if (state === "loading")
     return (
       <div className="flex h-[70vh] items-center justify-center text-muted-foreground">
-        <Loader2 className="mr-2 h-5 w-5 animate-spin text-gold" /> Loading workspace…
+        <Loader2 className="mr-2 h-5 w-5 animate-spin text-brand" /> Loading workspace…
       </div>
     );
   if (state === "missing" || !project)
@@ -144,7 +144,7 @@ export function Workspace({ id }: { id: string }) {
                 mode === x.id ? "text-ink" : "text-muted-foreground hover:text-white",
               )}
             >
-              {mode === x.id && <motion.span layoutId="mode-pill" className="absolute inset-0 rounded-lg bg-gold-sheen" />}
+              {mode === x.id && <motion.span layoutId="mode-pill" className="absolute inset-0 rounded-lg bg-brand-sheen" />}
               <x.icon className="relative h-3.5 w-3.5" />
               <span className="relative">{x.label}</span>
             </button>

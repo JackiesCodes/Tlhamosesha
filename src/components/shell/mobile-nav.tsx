@@ -23,11 +23,11 @@ export function MobileNav() {
           return (
             <Link key={it.href} href={it.href} className="flex flex-col items-center gap-1 py-2.5 text-[10px] font-medium">
               {it.primary ? (
-                <span className="-mt-6 flex h-12 w-12 items-center justify-center rounded-2xl bg-gold-sheen text-ink shadow-glow">
+                <span className="-mt-6 flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-sheen text-ink shadow-glow">
                   <it.icon className="h-5 w-5" />
                 </span>
               ) : (
-                <it.icon className={cn("h-5 w-5", active ? "text-gold" : "text-muted-foreground")} />
+                <it.icon className={cn("h-5 w-5", active ? "text-brand" : "text-muted-foreground")} />
               )}
               <span className={cn(active ? "text-white" : "text-muted-foreground")}>{it.label}</span>
             </Link>

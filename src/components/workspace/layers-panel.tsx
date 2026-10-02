@@ -47,8 +47,8 @@ export function LayerList({ className }: { className?: string }) {
             onClick={() => select(l.id)}
             className={cn(
               "group flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm transition",
-              active ? "bg-gold/[0.12] text-white ring-1 ring-gold/30" : "text-slate-300 hover:bg-white/[0.04]",
-              hl && !active && "bg-gold/[0.05]",
+              active ? "bg-brand/[0.12] text-white ring-1 ring-brand/30" : "text-slate-300 hover:bg-white/[0.04]",
+              hl && !active && "bg-brand/[0.05]",
             )}
           >
             <span className="w-5 text-right font-mono text-[10px] text-slate-500">{layers.length - i}</span>
@@ -117,7 +117,7 @@ export function LayerInspector({ className }: { className?: string }) {
           value={layer.name}
           onChange={(e) => updateLayer(layer.id, { name: e.target.value }, { commit: false })}
           onFocus={commit}
-          className="h-8 min-w-0 flex-1 rounded-lg border border-transparent bg-transparent px-2 text-sm font-semibold text-white hover:border-white/10 focus:border-gold/40 focus:outline-none"
+          className="h-8 min-w-0 flex-1 rounded-lg border border-transparent bg-transparent px-2 text-sm font-semibold text-white hover:border-white/10 focus:border-brand/40 focus:outline-none"
         />
         <span className="rounded-md bg-white/[0.05] px-2 py-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">{layer.type}</span>
       </div>
@@ -191,7 +191,7 @@ function TextProps({ layer }: { layer: TextLayer }) {
         value={layer.text}
         onChange={(e) => set({ text: e.target.value, name: e.target.value.slice(0, 32) })}
         rows={2}
-        className="w-full resize-none rounded-lg border border-white/[0.08] bg-surface-sunken/80 px-2.5 py-2 text-sm text-white focus:border-gold/40 focus:outline-none"
+        className="w-full resize-none rounded-lg border border-white/[0.08] bg-surface-sunken/80 px-2.5 py-2 text-sm text-white focus:border-brand/40 focus:outline-none"
       />
       <select
         value={layer.fontFamily}
@@ -217,7 +217,7 @@ function TextProps({ layer }: { layer: TextLayer }) {
             <button
               key={a}
               onClick={() => set({ align: a })}
-              className={cn("flex h-8 flex-1 items-center justify-center rounded-lg border", layer.align === a ? "border-gold/40 bg-gold/10 text-gold" : "border-white/[0.06] text-muted-foreground hover:text-white")}
+              className={cn("flex h-8 flex-1 items-center justify-center rounded-lg border", layer.align === a ? "border-brand/40 bg-brand/10 text-brand" : "border-white/[0.06] text-muted-foreground hover:text-white")}
               aria-label={`Align ${a}`}
             >
               <I className="h-4 w-4" />
@@ -226,7 +226,7 @@ function TextProps({ layer }: { layer: TextLayer }) {
         })}
         <button
           onClick={() => set({ uppercase: !layer.uppercase })}
-          className={cn("flex h-8 flex-1 items-center justify-center rounded-lg border text-xs font-bold", layer.uppercase ? "border-gold/40 bg-gold/10 text-gold" : "border-white/[0.06] text-muted-foreground hover:text-white")}
+          className={cn("flex h-8 flex-1 items-center justify-center rounded-lg border text-xs font-bold", layer.uppercase ? "border-brand/40 bg-brand/10 text-brand" : "border-white/[0.06] text-muted-foreground hover:text-white")}
         >
           AA
         </button>
@@ -238,7 +238,7 @@ function TextProps({ layer }: { layer: TextLayer }) {
             <Tooltip key={c.hex} content={`${c.name} ${c.hex}`}>
               <button
                 onClick={() => set({ color: c.hex })}
-                className={cn("h-6 w-6 rounded-md border border-white/15 transition hover:scale-110", c.hex === layer.color && "ring-2 ring-gold")}
+                className={cn("h-6 w-6 rounded-md border border-white/15 transition hover:scale-110", c.hex === layer.color && "ring-2 ring-brand")}
                 style={{ background: c.hex }}
                 aria-label={`Use ${c.hex}`}
               />
@@ -277,7 +277,7 @@ function NumField({
   suffix?: string;
 }) {
   return (
-    <label className="flex h-8 items-center gap-1.5 rounded-lg border border-white/[0.08] bg-surface-sunken/80 px-2 focus-within:border-gold/40">
+    <label className="flex h-8 items-center gap-1.5 rounded-lg border border-white/[0.08] bg-surface-sunken/80 px-2 focus-within:border-brand/40">
       <span className="w-6 shrink-0 text-[10px] font-semibold text-muted-foreground">{label}</span>
       <input
         type="number"
@@ -310,7 +310,7 @@ function ColorField({ value, onChange }: { value: string; onChange: (v: string) 
           setDraft(e.target.value);
           if (/^#[0-9a-f]{6}$/i.test(e.target.value)) onChange(e.target.value.toUpperCase());
         }}
-        className="h-8 min-w-0 flex-1 rounded-lg border border-white/[0.08] bg-surface-sunken/80 px-2 font-mono text-xs text-white focus:border-gold/40 focus:outline-none"
+        className="h-8 min-w-0 flex-1 rounded-lg border border-white/[0.08] bg-surface-sunken/80 px-2 font-mono text-xs text-white focus:border-brand/40 focus:outline-none"
       />
     </div>
   );

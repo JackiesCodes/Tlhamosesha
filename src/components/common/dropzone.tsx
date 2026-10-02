@@ -40,14 +40,14 @@ export function Dropzone({ onFile, compact, className }: { onFile: (f: File) => 
       animate={{ scale: over ? 1.01 : 1 }}
       className={cn(
         "relative flex flex-col items-center justify-center overflow-hidden rounded-3xl border-2 border-dashed text-center transition-colors",
-        over ? "border-gold bg-gold/[0.06]" : "border-white/10 bg-surface-sunken/60 hover:border-gold/40",
+        over ? "border-brand bg-brand/[0.06]" : "border-white/10 bg-surface-sunken/60 hover:border-brand/40",
         compact ? "gap-3 px-6 py-10" : "gap-5 px-8 py-16 sm:py-20",
         className,
       )}
     >
       <div className="pointer-events-none absolute inset-0 bg-grid-faint [background-size:32px_32px] [mask-image:radial-gradient(ellipse_at_center,black,transparent_75%)]" />
-      <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl border border-gold/30 bg-gold/10 shadow-glow">
-        <UploadCloud className="h-7 w-7 text-gold" />
+      <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl border border-brand/30 bg-brand/10 shadow-glow">
+        <UploadCloud className="h-7 w-7 text-brand" />
       </div>
       <div className="relative">
         <p className="font-display text-lg font-semibold text-white">Drop a poster to break it down</p>

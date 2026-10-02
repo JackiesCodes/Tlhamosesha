@@ -4,16 +4,16 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/60 focus-visible:ring-offset-2 focus-visible:ring-offset-ink disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60 focus-visible:ring-offset-2 focus-visible:ring-offset-ink disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
-        default: "bg-gold-sheen text-ink font-semibold shadow-glow hover:brightness-110 active:brightness-95",
+        default: "bg-brand-sheen text-ink font-semibold shadow-glow hover:brightness-110 active:brightness-95",
         secondary: "bg-white/[0.06] text-white border border-white/[0.08] hover:bg-white/[0.1]",
-        outline: "border border-white/10 bg-transparent text-white hover:border-gold/50 hover:bg-gold/5",
+        outline: "border border-white/10 bg-transparent text-white hover:border-brand/50 hover:bg-brand/5",
         ghost: "text-muted-foreground hover:text-white hover:bg-white/[0.06]",
         destructive: "bg-destructive/90 text-white hover:bg-destructive",
-        link: "text-gold underline-offset-4 hover:underline",
+        link: "text-brand underline-offset-4 hover:underline",
       },
       size: {
         default: "h-10 px-4",

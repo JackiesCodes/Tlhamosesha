@@ -68,7 +68,7 @@ export default function DownloadsPage() {
               <button
                 key={k}
                 onClick={() => setKind(k)}
-                className={`whitespace-nowrap rounded-full border px-3 py-1.5 text-xs capitalize transition ${kind === k ? "border-gold/50 bg-gold/10 text-gold-200" : "border-white/[0.08] text-muted-foreground hover:text-white"}`}
+                className={`whitespace-nowrap rounded-full border px-3 py-1.5 text-xs capitalize transition ${kind === k ? "border-brand/50 bg-brand/10 text-brand-200" : "border-white/[0.08] text-muted-foreground hover:text-white"}`}
               >
                 {k}
               </button>
@@ -76,7 +76,7 @@ export default function DownloadsPage() {
           </div>
           {projects && shown.length === 0 && (
             <div className="panel px-6 py-14 text-center text-sm text-muted-foreground">
-              No assets yet — <Link href="/upload" className="text-gold hover:underline">break down a poster</Link> to build your library.
+              No assets yet — <Link href="/upload" className="text-brand hover:underline">break down a poster</Link> to build your library.
             </div>
           )}
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6">
@@ -101,7 +101,7 @@ export default function DownloadsPage() {
                 </div>
                 <div className="p-3">
                   <div className="truncate text-sm text-white">{o.label}</div>
-                  <Link href={`/projects/${project.id}`} className="block truncate text-[11px] text-muted-foreground hover:text-gold">
+                  <Link href={`/projects/${project.id}`} className="block truncate text-[11px] text-muted-foreground hover:text-brand">
                     {project.name}
                   </Link>
                 </div>

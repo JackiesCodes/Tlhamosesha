@@ -147,7 +147,7 @@ function ElementsTab({ project }: { project: Project }) {
                   <span className="capitalize">{b.kind}</span>
                   <span>{Math.round(b.confidence * 100)}%</span>
                 </div>
-                {b.css && <code className="mt-1 block truncate font-mono text-[10px] text-gold/80">{b.css}</code>}
+                {b.css && <code className="mt-1 block truncate font-mono text-[10px] text-brand/80">{b.css}</code>}
               </div>
             </div>
           ))}
@@ -163,7 +163,7 @@ function ObjectCard({ o, i, view, active, onView, onDownload }: { o: DetectedObj
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: Math.min(i * 0.03, 0.3) }}
-      className={cn("group overflow-hidden rounded-xl border bg-surface-sunken/60 transition", active ? "border-gold/60 shadow-glow" : "border-white/[0.06] hover:border-white/15")}
+      className={cn("group overflow-hidden rounded-xl border bg-surface-sunken/60 transition", active ? "border-brand/60 shadow-glow" : "border-white/[0.06] hover:border-white/15")}
     >
       <div className={cn("relative flex aspect-square items-center justify-center p-3", view === "cutout" && "checkerboard")}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -267,7 +267,7 @@ function TypographyTab({ project }: { project: Project }) {
             onClick={() => highlight(highlightIds.includes(t.id) ? [] : [t.id])}
             className={cn(
               "grid w-full grid-cols-1 gap-2 border-b border-white/[0.04] px-4 py-3 text-left transition last:border-0 md:grid-cols-[1fr_110px_150px_70px_90px] md:items-center md:gap-3",
-              highlightIds.includes(t.id) ? "bg-gold/[0.08]" : "hover:bg-white/[0.03]",
+              highlightIds.includes(t.id) ? "bg-brand/[0.08]" : "hover:bg-white/[0.03]",
             )}
           >
             <span className="flex min-w-0 items-center gap-2">
@@ -408,15 +408,15 @@ function LayoutTab({ project }: { project: Project }) {
             width={Math.max(0, W - l.margins.left - l.margins.right)}
             height={Math.max(0, H - l.margins.top - l.margins.bottom)}
             fill="none"
-            stroke="#D4AF37"
+            stroke="#22D3EE"
             strokeDasharray={`${stroke * 6} ${stroke * 4}`}
             strokeWidth={stroke}
           />
           {l.columnGuides.map((x) => (
-            <line key={`c${x}`} x1={x} x2={x} y1={0} y2={H} stroke="#38BDF8" strokeWidth={stroke} strokeOpacity={0.6} />
+            <line key={`c${x}`} x1={x} x2={x} y1={0} y2={H} stroke="#A78BFA" strokeWidth={stroke} strokeOpacity={0.7} />
           ))}
           {l.rowGuides.map((y) => (
-            <line key={`r${y}`} y1={y} y2={y} x1={0} x2={W} stroke="#A78BFA" strokeWidth={stroke} strokeOpacity={0.5} />
+            <line key={`r${y}`} y1={y} y2={y} x1={0} x2={W} stroke="#FBBF24" strokeWidth={stroke} strokeOpacity={0.55} />
           ))}
           <line x1={W / 2} x2={W / 2} y1={0} y2={H} stroke="#fff" strokeOpacity={0.12} strokeWidth={stroke} />
           {a.objects.filter((o) => o.kind !== "face").map((o) => (
@@ -431,9 +431,9 @@ function LayoutTab({ project }: { project: Project }) {
           ))}
         </svg>
         <div className="mt-3 flex flex-wrap gap-4 text-[11px] text-muted-foreground">
-          <Legend color="#D4AF37" label="Margins" />
-          <Legend color="#38BDF8" label="Column gutters" />
-          <Legend color="#A78BFA" label="Row gutters" />
+          <Legend color="#22D3EE" label="Margins" />
+          <Legend color="#A78BFA" label="Column gutters" />
+          <Legend color="#FBBF24" label="Row gutters" />
           <Legend color="#34D399" label="Image blocks" />
           <Legend color="#F472B6" label="Text blocks" />
         </div>
@@ -455,7 +455,7 @@ function LayoutTab({ project }: { project: Project }) {
                 <span className="w-4 font-mono text-muted-foreground">{i + 1}</span>
                 <span className="min-w-0 flex-1 truncate text-white">{h.label}</span>
                 <div className="h-1.5 w-16 rounded-full bg-white/[0.06]">
-                  <div className="h-full rounded-full bg-gold" style={{ width: `${(h.weight / (l.hierarchy[0]?.weight || 1)) * 100}%` }} />
+                  <div className="h-full rounded-full bg-brand" style={{ width: `${(h.weight / (l.hierarchy[0]?.weight || 1)) * 100}%` }} />
                 </div>
               </li>
             ))}
@@ -483,11 +483,11 @@ function MetadataTab({ project }: { project: Project }) {
   return (
     <div className="grid gap-6 lg:grid-cols-2">
       <div className="space-y-4">
-        <div className="rounded-xl border border-gold/25 bg-gradient-to-br from-gold/10 to-transparent p-5">
-          <div className="panel-title text-gold/80">Estimated design type</div>
+        <div className="rounded-xl border border-brand/25 bg-gradient-to-br from-brand/10 to-transparent p-5">
+          <div className="panel-title text-brand/80">Estimated design type</div>
           <div className="mt-2 flex items-baseline justify-between gap-2">
             <span className="font-display text-2xl font-bold text-white">{m.designType.label}</span>
-            <span className="font-display text-2xl font-bold text-gold">{Math.round(m.designType.confidence * 100)}%</span>
+            <span className="font-display text-2xl font-bold text-brand">{Math.round(m.designType.confidence * 100)}%</span>
           </div>
         </div>
         <div className="rounded-xl border border-white/[0.06] bg-surface-sunken/50 p-4">
@@ -553,7 +553,7 @@ function DnaTab({ project }: { project: Project }) {
           <div key={x.k} className="rounded-xl border border-white/[0.06] bg-surface-sunken/50 p-4">
             <div className="mb-3 flex items-center justify-between">
               <span className="text-sm font-semibold text-white">{x.k}</span>
-              <span className="font-mono text-sm text-gold">{x.s.score}</span>
+              <span className="font-mono text-sm text-brand">{x.s.score}</span>
             </div>
             <div className="space-y-3">
               {x.s.checks.map((c) => (
@@ -578,7 +578,7 @@ function ScoreRing({ label, value, big }: { label: string; value: number; big?: 
   const r = 34;
   const c = 2 * Math.PI * r;
   return (
-    <div className={cn("flex items-center gap-4 rounded-xl border p-4", big ? "border-gold/30 bg-gold/[0.06]" : "border-white/[0.06] bg-surface-sunken/50")}>
+    <div className={cn("flex items-center gap-4 rounded-xl border p-4", big ? "border-brand/30 bg-brand/[0.06]" : "border-white/[0.06] bg-surface-sunken/50")}>
       <svg viewBox="0 0 80 80" className="h-16 w-16 -rotate-90">
         <circle cx="40" cy="40" r={r} fill="none" stroke="rgba(255,255,255,.07)" strokeWidth="7" />
         <motion.circle
@@ -586,7 +586,7 @@ function ScoreRing({ label, value, big }: { label: string; value: number; big?: 
           cy="40"
           r={r}
           fill="none"
-          stroke={value >= 80 ? "#34D399" : value >= 60 ? "#D4AF37" : "#FB7185"}
+          stroke={value >= 80 ? "#34D399" : value >= 60 ? "#FBBF24" : "#FB7185"}
           strokeWidth="7"
           strokeLinecap="round"
           strokeDasharray={c}
@@ -627,7 +627,7 @@ function CopyButton({ value, label }: { value: string; label?: string }) {
 function ConfidenceDot({ v }: { v: number }) {
   return (
     <span className="flex items-center gap-1 font-mono text-[10px] text-muted-foreground">
-      <span className={cn("h-1.5 w-1.5 rounded-full", v >= 0.75 ? "bg-emerald-400" : v >= 0.55 ? "bg-gold" : "bg-rose-400")} />
+      <span className={cn("h-1.5 w-1.5 rounded-full", v >= 0.75 ? "bg-emerald-400" : v >= 0.55 ? "bg-amber-400" : "bg-rose-400")} />
       {Math.round(v * 100)}%
     </span>
   );

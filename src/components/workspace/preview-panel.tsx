@@ -49,7 +49,7 @@ export function PreviewPanel({ project, className }: { project: Project; classNa
 
       <div className="mt-3 flex justify-between text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
         <span>Original</span>
-        <span className="text-gold">Reconstructed</span>
+        <span className="text-brand">Reconstructed</span>
       </div>
 
       <div ref={frame} className="relative mt-2 flex min-h-[260px] flex-1 items-start justify-center">
@@ -69,15 +69,15 @@ export function PreviewPanel({ project, className }: { project: Project; classNa
           </div>
 
           {previewMode === "split" && (
-            <div className="pointer-events-none absolute inset-y-0 w-0.5 bg-gold shadow-[0_0_10px_rgba(212,175,55,.8)]" style={{ left: `${split}%` }}>
-              <div className="absolute top-1/2 -ml-3 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full border-2 border-gold bg-ink text-[10px] text-gold">⇆</div>
+            <div className="pointer-events-none absolute inset-y-0 w-0.5 bg-brand shadow-[0_0_10px_rgba(34,211,238,.8)]" style={{ left: `${split}%` }}>
+              <div className="absolute top-1/2 -ml-3 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full border-2 border-brand bg-ink text-[10px] text-brand">⇆</div>
             </div>
           )}
 
           {boxes.map((b, i) => (
             <div
               key={i}
-              className="pointer-events-none absolute rounded-sm border-2 border-gold bg-gold/10"
+              className="pointer-events-none absolute rounded-sm border-2 border-brand bg-brand/10"
               style={{ left: b.x * scale, top: b.y * scale, width: b.width * scale, height: b.height * scale }}
             />
           ))}

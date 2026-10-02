@@ -106,7 +106,7 @@ function BarCard({ title, description, rows, max }: { title: string; description
                 initial={{ width: 0 }}
                 animate={{ width: `${(r.value / top) * 100}%` }}
                 transition={{ duration: 0.7, ease: "easeOut" }}
-                className="h-full rounded-full bg-gold transition group-hover:brightness-125"
+                className="h-full rounded-full bg-brand transition group-hover:brightness-125"
               />
             </div>
             <span className="text-right font-mono text-xs text-white">{r.value}</span>

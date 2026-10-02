@@ -39,7 +39,7 @@ export default function SettingsPage() {
       <Card>
         <CardHeader>
           <div>
-            <CardTitle className="flex items-center gap-2"><Cpu className="h-4 w-4 text-gold" /> AI vision engines</CardTitle>
+            <CardTitle className="flex items-center gap-2"><Cpu className="h-4 w-4 text-brand" /> AI vision engines</CardTitle>
             <CardDescription>Server-side providers are enabled with environment variables. Results are merged with the on-device pipeline.</CardDescription>
           </div>
         </CardHeader>
@@ -61,7 +61,7 @@ export default function SettingsPage() {
       <Card>
         <CardHeader>
           <div>
-            <CardTitle className="flex items-center gap-2"><SlidersHorizontal className="h-4 w-4 text-gold" /> Pipeline</CardTitle>
+            <CardTitle className="flex items-center gap-2"><SlidersHorizontal className="h-4 w-4 text-brand" /> Pipeline</CardTitle>
             <CardDescription>Applies to new breakdowns.</CardDescription>
           </div>
         </CardHeader>
@@ -72,7 +72,7 @@ export default function SettingsPage() {
           <div>
             <div className="mb-2 flex justify-between text-sm">
               <span className="text-white">Segmentation sensitivity</span>
-              <span className="font-mono text-gold">{Math.round(settings.sensitivity * 100)}</span>
+              <span className="font-mono text-brand">{Math.round(settings.sensitivity * 100)}</span>
             </div>
             <Slider value={[settings.sensitivity]} min={0} max={1} step={0.05} onValueChange={([v]) => setSettings({ sensitivity: v })} />
             <p className="mt-2 text-xs text-muted-foreground">Higher finds fainter elements; lower keeps only strong foreground.</p>
@@ -80,7 +80,7 @@ export default function SettingsPage() {
           <div>
             <div className="mb-2 flex justify-between text-sm">
               <span className="text-white">Maximum objects</span>
-              <span className="font-mono text-gold">{settings.maxObjects}</span>
+              <span className="font-mono text-brand">{settings.maxObjects}</span>
             </div>
             <Slider value={[settings.maxObjects]} min={4} max={30} step={1} onValueChange={([v]) => setSettings({ maxObjects: v })} />
           </div>
@@ -91,7 +91,7 @@ export default function SettingsPage() {
       <div className="grid gap-6 md:grid-cols-2">
         <Card id="profile">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2"><User className="h-4 w-4 text-gold" /> Profile</CardTitle>
+            <CardTitle className="flex items-center gap-2"><User className="h-4 w-4 text-brand" /> Profile</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <label className="block text-xs text-muted-foreground">Display name</label>
@@ -100,7 +100,7 @@ export default function SettingsPage() {
         </Card>
         <Card id="workspace">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2"><Database className="h-4 w-4 text-gold" /> Workspace & storage</CardTitle>
+            <CardTitle className="flex items-center gap-2"><Database className="h-4 w-4 text-brand" /> Workspace & storage</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <label className="block text-xs text-muted-foreground">Active workspace</label>
@@ -116,8 +116,8 @@ export default function SettingsPage() {
               )}
             </div>
             <p className="text-xs text-muted-foreground">
-              Projects are always stored in this browser (IndexedDB). Set <code className="text-gold">DATABASE_URL</code> and run{" "}
-              <code className="text-gold">npm run db:push</code> to also sync analyses to PostgreSQL.
+              Projects are always stored in this browser (IndexedDB). Set <code className="text-brand">DATABASE_URL</code> and run{" "}
+              <code className="text-brand">npm run db:push</code> to also sync analyses to PostgreSQL.
             </p>
           </CardContent>
         </Card>
@@ -125,7 +125,7 @@ export default function SettingsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2"><KeyRound className="h-4 w-4 text-gold" /> Environment reference</CardTitle>
+          <CardTitle className="flex items-center gap-2"><KeyRound className="h-4 w-4 text-brand" /> Environment reference</CardTitle>
         </CardHeader>
         <CardContent>
           <pre className="scrollbar-thin overflow-x-auto rounded-xl bg-surface-sunken p-4 font-mono text-xs leading-relaxed text-slate-300">{`OPENAI_API_KEY=...        # OpenAI Vision

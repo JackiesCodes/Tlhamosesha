@@ -152,7 +152,7 @@ export function SceneView({
                 height: l.height,
                 opacity: l.visible ? l.opacity : 0.25,
                 transform: l.rotation ? `rotate(${l.rotation}deg)` : undefined,
-                outline: hl ? `${2 / scale}px solid #D4AF37` : undefined,
+                outline: hl ? `${2 / scale}px solid #22D3EE` : undefined,
                 outlineOffset: hl ? 2 / scale : undefined,
               }}
             >
@@ -162,7 +162,7 @@ export function SceneView({
               }} />
               {selected && <Handles scale={scale} locked={l.locked} onHandle={(e, h) => begin(e, l, h)} />}
               {interactive && !selected && (
-                <div className="pointer-events-none absolute inset-0 opacity-0 transition hover:opacity-100" style={{ boxShadow: `inset 0 0 0 ${1 / scale}px rgba(212,175,55,.6)` }} />
+                <div className="pointer-events-none absolute inset-0 opacity-0 transition hover:opacity-100" style={{ boxShadow: `inset 0 0 0 ${1 / scale}px rgba(34,211,238,.6)` }} />
               )}
             </div>
           );
@@ -202,7 +202,7 @@ function LayerContent({ layer: l, editing, onCommitText }: { layer: SceneLayer; 
         }
         e.stopPropagation();
       }}
-      className={cn("flex h-full w-full items-center whitespace-nowrap leading-none outline-none", editing && "cursor-text ring-2 ring-gold")}
+      className={cn("flex h-full w-full items-center whitespace-nowrap leading-none outline-none", editing && "cursor-text ring-2 ring-brand")}
       style={{
         justifyContent: l.align === "left" ? "flex-start" : l.align === "right" ? "flex-end" : "center",
         color: l.color,
@@ -234,22 +234,22 @@ function Handles({ scale, locked, onHandle }: { scale: number; locked: boolean; 
   };
   return (
     <>
-      <div className="pointer-events-none absolute inset-0" style={{ boxShadow: `0 0 0 ${b}px ${locked ? "#64748b" : "#D4AF37"}` }} />
+      <div className="pointer-events-none absolute inset-0" style={{ boxShadow: `0 0 0 ${b}px ${locked ? "#64748b" : "#22D3EE"}` }} />
       {!locked &&
         (Object.keys(pos) as Exclude<Handle, "rot">[]).map((h) => (
           <div
             key={h}
             onPointerDown={(e) => onHandle(e, h)}
             className="absolute rounded-[2px] bg-white"
-            style={{ ...pos[h], width: s, height: s, boxShadow: `0 0 0 ${b}px #D4AF37` }}
+            style={{ ...pos[h], width: s, height: s, boxShadow: `0 0 0 ${b}px #22D3EE` }}
           />
         ))}
       {!locked && (
         <>
-          <div className="pointer-events-none absolute left-1/2 bg-gold" style={{ top: -28 / scale, width: b, height: 22 / scale, transform: "translateX(-50%)" }} />
+          <div className="pointer-events-none absolute left-1/2 bg-brand" style={{ top: -28 / scale, width: b, height: 22 / scale, transform: "translateX(-50%)" }} />
           <div
             onPointerDown={(e) => onHandle(e, "rot")}
-            className="absolute left-1/2 cursor-grab rounded-full bg-gold"
+            className="absolute left-1/2 cursor-grab rounded-full bg-brand"
             style={{ top: -34 / scale, width: s * 1.1, height: s * 1.1, transform: "translateX(-50%)" }}
           />
         </>

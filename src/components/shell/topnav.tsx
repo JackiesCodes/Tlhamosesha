@@ -47,7 +47,7 @@ export function TopNav({ onSearch }: { onSearch: () => void }) {
       {/* Workspace switcher */}
       <DropdownMenu>
         <DropdownMenuTrigger className="hidden items-center gap-2 rounded-xl border border-white/[0.06] bg-white/[0.03] py-1.5 pl-1.5 pr-3 text-sm transition hover:border-white/15 md:flex">
-          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-gold/80 to-gold-600 text-[11px] font-bold text-ink">
+          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-brand/80 to-brand-600 text-[11px] font-bold text-ink">
             {settings.workspace.slice(0, 1)}
           </span>
           <span className="max-w-[140px] truncate font-medium">{settings.workspace}</span>
@@ -59,7 +59,7 @@ export function TopNav({ onSearch }: { onSearch: () => void }) {
             <DropdownMenuItem key={w} onSelect={() => setSettings({ workspace: w })}>
               <span className="flex h-6 w-6 items-center justify-center rounded-md bg-white/[0.07] text-[10px] font-bold">{w.slice(0, 1)}</span>
               <span className="flex-1">{w}</span>
-              {w === settings.workspace && <Check className="!text-gold" />}
+              {w === settings.workspace && <Check className="!text-brand" />}
             </DropdownMenuItem>
           ))}
           <DropdownMenuSeparator />
@@ -74,7 +74,7 @@ export function TopNav({ onSearch }: { onSearch: () => void }) {
       {/* Search */}
       <button
         onClick={onSearch}
-        className="group flex h-10 min-w-0 flex-1 items-center gap-3 rounded-xl md:ml-4 md:max-w-md border border-white/[0.06] bg-white/[0.03] px-3 text-sm text-muted-foreground transition hover:border-gold/30"
+        className="group flex h-10 min-w-0 flex-1 items-center gap-3 rounded-xl md:ml-4 md:max-w-md border border-white/[0.06] bg-white/[0.03] px-3 text-sm text-muted-foreground transition hover:border-brand/30"
       >
         <Search className="h-4 w-4" />
         <span className="min-w-0 flex-1 truncate text-left"><span className="sm:hidden">Search</span><span className="hidden sm:inline">Smart search — “Show sponsor logos”</span></span>
@@ -94,7 +94,7 @@ export function TopNav({ onSearch }: { onSearch: () => void }) {
             <Button variant="ghost" size="icon" className="relative" aria-label="Notifications">
               <Bell />
               {unread > 0 && (
-                <span className="absolute right-1.5 top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-gold px-1 text-[9px] font-bold text-ink">
+                <span className="absolute right-1.5 top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand px-1 text-[9px] font-bold text-ink">
                   {unread}
                 </span>
               )}
@@ -107,7 +107,7 @@ export function TopNav({ onSearch }: { onSearch: () => void }) {
               {notifications.map((n) => (
                 <DropdownMenuItem key={n.id} asChild>
                   <Link href={n.href ?? "#"} className="!items-start">
-                    <span className={cn("mt-1.5 h-2 w-2 shrink-0 rounded-full", n.read ? "bg-white/15" : "bg-gold")} />
+                    <span className={cn("mt-1.5 h-2 w-2 shrink-0 rounded-full", n.read ? "bg-white/15" : "bg-brand")} />
                     <span className="min-w-0">
                       <span className="block text-sm font-medium text-white">{n.title}</span>
                       <span className="block text-xs leading-snug text-muted-foreground">{n.body}</span>

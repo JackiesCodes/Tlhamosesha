@@ -60,7 +60,7 @@ export default function ProjectsPage() {
               onClick={() => setType(t)}
               className={cn(
                 "whitespace-nowrap rounded-full border px-3 py-1.5 text-xs transition",
-                type === t ? "border-gold/50 bg-gold/10 text-gold-200" : "border-white/[0.08] text-muted-foreground hover:text-white",
+                type === t ? "border-brand/50 bg-brand/10 text-brand-200" : "border-white/[0.08] text-muted-foreground hover:text-white",
               )}
             >
               {t}
@@ -69,7 +69,7 @@ export default function ProjectsPage() {
         </div>
         <div className="flex gap-2">
           <Button variant={starredOnly ? "outline" : "ghost"} size="sm" onClick={() => setStarredOnly((v) => !v)}>
-            <Star className={cn(starredOnly && "fill-gold text-gold")} /> Starred
+            <Star className={cn(starredOnly && "fill-brand text-brand")} /> Starred
           </Button>
           <select
             value={sort}

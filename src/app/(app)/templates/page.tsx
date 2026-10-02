@@ -59,7 +59,7 @@ export default function TemplatesPage() {
               <button
                 key={p.id}
                 onClick={() => router.push(`/projects/${p.id}?mode=reconstruct`)}
-                className="panel group overflow-hidden text-left transition hover:border-gold/30"
+                className="panel group overflow-hidden text-left transition hover:border-brand/30"
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={p.thumbnail} alt="" className="aspect-[4/3] w-full object-cover" />

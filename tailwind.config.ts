@@ -8,21 +8,29 @@ const config: Config = {
     container: { center: true, padding: "1.5rem", screens: { "2xl": "1440px" } },
     extend: {
       colors: {
-        ink: "#050B18",
+        // "Neon Circuit" palette: deep-space void, electric cyan, plasma violet.
+        ink: "#04060D",
         surface: {
-          DEFAULT: "#0F172A",
-          raised: "#141E35",
-          sunken: "#0A1224",
+          DEFAULT: "#0A0F1E",
+          raised: "#111830",
+          sunken: "#070B16",
         },
-        gold: {
-          DEFAULT: "#D4AF37",
-          50: "#FBF6E3",
-          100: "#F5EAC0",
-          200: "#EBD68A",
-          300: "#E1C25A",
-          400: "#D4AF37",
-          500: "#B8952A",
-          600: "#8F7320",
+        brand: {
+          DEFAULT: "#22D3EE",
+          50: "#ECFEFF",
+          100: "#CFFAFE",
+          200: "#A5F3FC",
+          300: "#67E8F9",
+          400: "#22D3EE",
+          500: "#06B6D4",
+          600: "#0891B2",
+        },
+        plasma: {
+          DEFAULT: "#8B5CF6",
+          300: "#C4B5FD",
+          400: "#A78BFA",
+          500: "#8B5CF6",
+          600: "#7C3AED",
         },
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -48,13 +56,13 @@ const config: Config = {
         mono: ["var(--font-mono)", "ui-monospace", "monospace"],
       },
       boxShadow: {
-        glow: "0 0 0 1px rgba(212,175,55,0.35), 0 8px 40px -8px rgba(212,175,55,0.35)",
+        glow: "0 0 0 1px rgba(34,211,238,0.35), 0 8px 40px -8px rgba(34,211,238,0.35), 0 12px 60px -12px rgba(139,92,246,0.35)",
         panel: "0 1px 0 0 rgba(255,255,255,0.04) inset, 0 20px 60px -20px rgba(0,0,0,0.6)",
       },
       backgroundImage: {
-        "gold-sheen": "linear-gradient(135deg,#F5EAC0 0%,#D4AF37 45%,#8F7320 100%)",
+        "brand-sheen": "linear-gradient(135deg,#A5F3FC 0%,#22D3EE 38%,#8B5CF6 100%)",
         "grid-faint":
-          "linear-gradient(rgba(255,255,255,0.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.035) 1px,transparent 1px)",
+          "linear-gradient(rgba(34,211,238,0.05) 1px,transparent 1px),linear-gradient(90deg,rgba(34,211,238,0.05) 1px,transparent 1px)",
       },
       keyframes: {
         shimmer: { "0%": { backgroundPosition: "-200% 0" }, "100%": { backgroundPosition: "200% 0" } },

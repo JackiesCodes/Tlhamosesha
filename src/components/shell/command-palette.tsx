@@ -91,7 +91,7 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
       <DialogContent className="max-w-2xl p-0" hideClose>
         <DialogTitle className="sr-only">Smart Search</DialogTitle>
         <div className="flex items-center gap-3 border-b border-white/[0.06] px-5">
-          <Sparkles className="h-4 w-4 text-gold" />
+          <Sparkles className="h-4 w-4 text-brand" />
           <input
             autoFocus
             value={q}
@@ -115,7 +115,7 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
                   <button
                     key={s}
                     onClick={() => setQ(s)}
-                    className="rounded-full border border-white/[0.08] bg-white/[0.03] px-3 py-1.5 text-xs text-slate-300 transition hover:border-gold/40 hover:text-white"
+                    className="rounded-full border border-white/[0.08] bg-white/[0.03] px-3 py-1.5 text-xs text-slate-300 transition hover:border-brand/40 hover:text-white"
                   >
                     {s}
                   </button>

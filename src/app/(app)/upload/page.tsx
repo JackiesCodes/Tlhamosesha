@@ -80,7 +80,7 @@ function UploadView() {
                     setInput(await urlToInput(s.src, `${s.name}.svg`));
                     useAnalyze.getState().start();
                   }}
-                  className="flex items-center gap-3 rounded-2xl border border-white/[0.06] bg-surface/70 p-3 text-left text-sm transition hover:border-gold/30"
+                  className="flex items-center gap-3 rounded-2xl border border-white/[0.06] bg-surface/70 p-3 text-left text-sm transition hover:border-brand/30"
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={s.src} alt="" className="h-12 w-12 rounded-lg object-cover" />
@@ -107,8 +107,8 @@ function UploadView() {
                 {running && (
                   <>
                     <div className="absolute inset-0 rounded-xl bg-grid-faint [background-size:24px_24px]" />
-                    <div className="absolute inset-x-0 h-24 -translate-y-1/2 animate-scan bg-gradient-to-b from-transparent via-gold/25 to-transparent">
-                      <div className="absolute inset-x-0 top-1/2 h-px bg-gold shadow-[0_0_12px_2px_rgba(212,175,55,0.7)]" />
+                    <div className="absolute inset-x-0 h-24 -translate-y-1/2 animate-scan bg-gradient-to-b from-transparent via-brand/25 to-transparent">
+                      <div className="absolute inset-x-0 top-1/2 h-px bg-brand shadow-[0_0_12px_2px_rgba(34,211,238,0.7)]" />
                     </div>
                   </>
                 )}
@@ -122,7 +122,7 @@ function UploadView() {
                   <div className="text-sm font-semibold text-white">{input.fileName}</div>
                   <div className="text-xs text-muted-foreground">{formatBytes(input.fileSize)} · {input.mimeType}</div>
                 </div>
-                <div className="font-display text-2xl font-bold text-gold">{pct}%</div>
+                <div className="font-display text-2xl font-bold text-brand">{pct}%</div>
               </div>
               <Progress value={pct} className="mt-4" />
 
@@ -137,13 +137,13 @@ function UploadView() {
                       transition={{ delay: i * 0.03 }}
                       className={cn(
                         "flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition",
-                        st.status === "active" && "bg-gold/[0.07]",
+                        st.status === "active" && "bg-brand/[0.07]",
                       )}
                     >
                       <StepIcon status={st.status} />
                       <span className={cn("flex-1", st.status === "pending" ? "text-muted-foreground" : "text-white")}>{s.label}</span>
                       {st.status === "active" && st.progress !== undefined && (
-                        <span className="font-mono text-[11px] text-gold">{Math.round(st.progress * 100)}%</span>
+                        <span className="font-mono text-[11px] text-brand">{Math.round(st.progress * 100)}%</span>
                       )}
                       {st.note && st.status !== "active" && <span className="max-w-[45%] truncate text-right text-[11px] text-muted-foreground">{st.note}</span>}
                     </motion.li>
@@ -188,7 +188,7 @@ function UploadView() {
 
 function StepIcon({ status }: { status: string }) {
   if (status === "done") return <Check className="h-4 w-4 text-emerald-400" />;
-  if (status === "active") return <Loader2 className="h-4 w-4 animate-spin text-gold" />;
+  if (status === "active") return <Loader2 className="h-4 w-4 animate-spin text-brand" />;
   if (status === "skipped") return <MinusCircle className="h-4 w-4 text-slate-500" />;
   if (status === "error") return <AlertTriangle className="h-4 w-4 text-rose-400" />;
   return <Circle className="h-4 w-4 text-slate-600" />;

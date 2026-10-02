@@ -49,13 +49,13 @@ export default function HomePage() {
           transition={{ duration: 0.5 }}
           className="panel relative flex flex-col justify-between overflow-hidden p-7 sm:p-10"
         >
-          <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-gold/10 blur-3xl" />
+          <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-brand/10 blur-3xl" />
           <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-gold/25 bg-gold/10 px-3 py-1 text-xs font-medium text-gold-200">
+            <div className="inline-flex items-center gap-2 rounded-full border border-brand/25 bg-brand/10 px-3 py-1 text-xs font-medium text-brand-200">
               <Sparkles className="h-3.5 w-3.5" /> Good to see you, {name}
             </div>
             <h1 className="mt-5 font-display text-3xl font-bold leading-[1.1] tracking-tight text-white sm:text-5xl">
-              Reverse-engineer <span className="text-gold-gradient">any poster</span> into editable layers.
+              Reverse-engineer <span className="text-brand-gradient">any poster</span> into editable layers.
             </h1>
             <p className="mt-4 max-w-xl text-base text-muted-foreground">
               Tlhamosesha AI reads the text, isolates every object, rebuilds the background and maps the grid, then hands you a fully
@@ -102,16 +102,16 @@ export default function HomePage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 + i * 0.05 }}
               onClick={() => router.push(`/upload?sample=${s.id}`)}
-              className="group flex items-center gap-4 rounded-2xl border border-white/[0.06] bg-surface/70 p-3 text-left transition hover:border-gold/30"
+              className="group flex items-center gap-4 rounded-2xl border border-white/[0.06] bg-surface/70 p-3 text-left transition hover:border-brand/30"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={s.src} alt={s.name} className="h-20 w-20 shrink-0 rounded-xl object-cover" />
               <div className="min-w-0">
                 <div className="truncate font-medium text-white">{s.name}</div>
-                <div className="text-xs text-gold/90">{s.category}</div>
+                <div className="text-xs text-brand/90">{s.category}</div>
                 <div className="mt-1 line-clamp-2 text-xs text-muted-foreground">{s.blurb}</div>
               </div>
-              <ArrowRight className="ml-auto h-4 w-4 shrink-0 text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-gold" />
+              <ArrowRight className="ml-auto h-4 w-4 shrink-0 text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-brand" />
             </motion.button>
           ))}
         </div>
@@ -157,7 +157,7 @@ export default function HomePage() {
             transition={{ delay: i * 0.04 }}
             className="panel p-5"
           >
-            <c.icon className="h-5 w-5 text-gold" />
+            <c.icon className="h-5 w-5 text-brand" />
             <div className="mt-3 font-medium text-white">{c.title}</div>
             <p className="mt-1 text-sm text-muted-foreground">{c.body}</p>
           </motion.div>
