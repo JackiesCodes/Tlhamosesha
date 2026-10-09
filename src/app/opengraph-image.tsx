@@ -1,4 +1,5 @@
 import { ImageResponse } from "next/og";
+import { MARK_PATH, TILE_VIEWBOX } from "@/lib/brand-mark";
 import { BRAND } from "@/lib/brand";
 
 export const alt = `${BRAND.name} — ${BRAND.tagline}`;
@@ -11,10 +12,9 @@ export default function OpengraphImage() {
     (
       <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", justifyContent: "space-between", background: "#0E0E10", padding: 80, color: "#FAFAFA" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
-          <svg width="96" height="96" viewBox="0 0 64 64">
-            <rect width="64" height="64" rx="16" fill="#18181B" />
-            <rect x="14" y="14" width="8" height="36" rx="1.5" fill="#3B82F6" />
-            <path d="M27 14h7a18 18 0 0 1 0 36h-7v-8h7a10 10 0 0 0 0-20h-7z" fill="#3B82F6" />
+          <svg width="96" height="96" viewBox={TILE_VIEWBOX}>
+            <rect x="46.5" y="-7.5" width="340" height="340" rx="76" fill="#18181B" />
+            <path d={MARK_PATH} fill="#FAFAFA" />
           </svg>
           <div style={{ display: "flex", flexDirection: "column" }}>
             <div style={{ fontSize: 56, fontWeight: 700 }}>{BRAND.name}</div>

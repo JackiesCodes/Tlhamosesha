@@ -25,7 +25,7 @@ You don't need an API key or a database. Everything runs on your device, and pro
 
 ### Renaming the product
 
-The name, tagline, description and legal details live in `src/lib/brand.ts`. The logo artwork is in `src/components/shell/logo.tsx`, `public/icon.svg`, `src/app/apple-icon.tsx` and `src/app/opengraph-image.tsx`. Browser storage keys intentionally keep their original names so saved projects survive a rename.
+The name, tagline, description and legal details live in `src/lib/brand.ts`. The logo is a single vector path in `src/lib/brand-mark.ts`, used by the in-app logo, the share image and the home-screen icon; `public/icon.svg` (browser tab) and `public/brand/decon-mark*.svg` (downloadable black and white versions) embed the same path. Browser storage keys intentionally keep their original names so saved projects survive a rename.
 
 ### Optional configuration (`.env`, see `.env.example`)
 
