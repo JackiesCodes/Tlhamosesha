@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { MotionConfig } from "framer-motion";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useApp, useLibrary } from "@/lib/store/app";
+import { BrowserCheck } from "./browser-check";
 import { CommandPalette } from "./command-palette";
 import { MobileNav } from "./mobile-nav";
 import { Sidebar } from "./sidebar";
@@ -27,6 +28,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <Sidebar collapsed={collapsed} onToggle={() => setCollapsed((c) => !c)} />
           <div className="relative flex min-w-0 flex-1 flex-col">
             <TopNav onSearch={openSearch} />
+            <BrowserCheck />
             <main className="flex-1 pb-24 lg:pb-0">{children}</main>
           </div>
           <MobileNav />

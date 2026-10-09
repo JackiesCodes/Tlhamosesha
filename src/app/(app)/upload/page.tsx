@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { SAMPLES } from "@/lib/samples";
 import { fileToInput, urlToInput, useAnalyze } from "@/lib/store/analyze";
+import { useApp } from "@/lib/store/app";
 import { cn, formatBytes } from "@/lib/utils";
 import { PIPELINE_STEPS } from "@/lib/vision/pipeline";
 
@@ -25,6 +26,7 @@ function UploadView() {
   const params = useSearchParams();
   const { input, setInput, start, running, steps, error, resultId, reset } = useAnalyze();
   const kicked = useRef(false);
+  const cloud = useApp((st) => st.settings.cloud);
 
   // Entry points: ?sample=<id> or ?autostart=1 (file handed over from Home).
   useEffect(() => {
@@ -65,7 +67,11 @@ function UploadView() {
       <PageHeader
         eyebrow="Upload"
         title="New poster breakdown"
-        description="Everything runs on your device first. Connected vision models (OpenAI, Gemini, Claude, or a YOLO/SAM service) refine the result when configured."
+        description={
+          cloud
+            ? "Analysis starts in your browser. Cloud vision is switched on in Settings, so a downscaled copy of your image is also sent to the configured vision service. Best results come from clean digital graphics."
+            : "Analysis runs privately in your browser — your image is not uploaded to a server. Best results come from clean digital graphics such as posters, banners and social posts."
+        }
       />
 
       <AnimatePresence mode="wait">

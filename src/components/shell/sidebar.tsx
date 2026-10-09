@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
-import { ChevronsLeft, ChevronsRight, Sparkles } from "lucide-react";
+import { ChevronsLeft, ChevronsRight, ShieldCheck } from "lucide-react";
 import { Tooltip } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { Logo } from "./logo";
@@ -17,7 +17,7 @@ export function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle:
       className="relative hidden shrink-0 flex-col border-r border-white/[0.06] bg-surface lg:flex"
     >
       <div className={cn("flex h-16 items-center", collapsed ? "justify-center" : "px-5")}>
-        <Link href="/" aria-label="Decon home">
+        <Link href="/home" aria-label="Decon home">
           <Logo collapsed={collapsed} />
         </Link>
       </div>
@@ -58,16 +58,15 @@ export function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle:
       </nav>
 
       {!collapsed && (
-        <div className="mx-3 mb-3 rounded-2xl border border-white/[0.07] bg-white/[0.02] p-4">
-          <div className="flex items-center gap-2 text-sm font-semibold text-white">
-            <Sparkles className="h-4 w-4 text-brand" /> Vision Ensemble
-          </div>
-          <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
-            Connect OpenAI, Gemini or Claude Vision to improve detection and font matching.
+        <div className="mx-3 mb-3 space-y-2 px-3 text-[11px] leading-relaxed text-muted-foreground">
+          <p className="flex items-start gap-2">
+            <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            Projects are saved in this browser only. Back them up from Settings.
           </p>
-          <Link href="/settings" className="mt-3 inline-block text-xs font-semibold text-brand hover:underline">
-            Configure engines →
-          </Link>
+          <p className="flex gap-3">
+            <Link href="/privacy" className="hover:text-white">Privacy</Link>
+            <Link href="/terms" className="hover:text-white">Terms</Link>
+          </p>
         </div>
       )}
 

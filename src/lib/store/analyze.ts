@@ -5,6 +5,7 @@ import type { Project } from "../types";
 import { uid } from "../utils";
 import { PIPELINE_STEPS, runPipeline, type StepId } from "../vision/pipeline";
 import { useApp, useLibrary } from "./app";
+import { storageErrorMessage } from "./db";
 
 export interface AnalysisInput {
   src: string;
@@ -76,7 +77,7 @@ export const useAnalyze = create<AnalyzeState>()((set, get) => ({
       set({ running: false, resultId: project.id });
       return project.id;
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Analysis failed";
+      const msg = storageErrorMessage(e);
       set({ running: false, error: msg });
       notify({ title: "Breakdown failed", body: msg });
       return null;

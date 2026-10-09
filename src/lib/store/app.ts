@@ -11,8 +11,6 @@ export interface Settings {
   cloud: boolean;
   sensitivity: number;
   maxObjects: number;
-  workspace: string;
-  displayName: string;
   reduceMotion: boolean;
 }
 
@@ -44,7 +42,7 @@ interface AppState {
   notifications: Notification[];
   notify: (n: Omit<Notification, "id" | "at" | "read">) => void;
   markAllRead: () => void;
-  workspaces: string[];
+  clearNotifications: () => void;
 }
 
 export const useApp = create<AppState>()(
@@ -53,11 +51,10 @@ export const useApp = create<AppState>()(
       settings: {
         ocr: true,
         ocrInvertPass: true,
-        cloud: true,
+        // Cloud vision is opt-in: by default images never leave the browser.
+        cloud: false,
         sensitivity: 0.5,
         maxObjects: 14,
-        workspace: "Personal Studio",
-        displayName: "Studio Owner",
         reduceMotion: false,
       },
       setSettings: (s) => set((st) => ({ settings: { ...st.settings, ...s } })),
@@ -67,25 +64,35 @@ export const useApp = create<AppState>()(
           exports: [{ ...e, id: crypto.randomUUID(), at: new Date().toISOString() }, ...st.exports].slice(0, 200),
         })),
       clearExports: () => set({ exports: [] }),
-      notifications: [
-        {
-          id: "welcome",
-          title: "Welcome to Decon",
-          body: "Upload a poster or try a sample to see it broken down into layers.",
-          at: new Date().toISOString(),
-          read: false,
-          href: "/upload",
-        },
-      ],
+      notifications: [],
       notify: (n) =>
         set((st) => ({
           notifications: [{ ...n, id: crypto.randomUUID(), at: new Date().toISOString(), read: false }, ...st.notifications].slice(0, 30),
         })),
       markAllRead: () => set((st) => ({ notifications: st.notifications.map((n) => ({ ...n, read: true })) })),
-      workspaces: ["Personal Studio", "Matchday Creative", "Brand Lab"],
+      clearNotifications: () => set({ notifications: [] }),
     }),
-    // Storage key predates the Decon rename; kept so saved settings survive.
-    { name: "tlhamosesha-app", version: 1 },
+    {
+      // Storage key predates the Decon rename; kept so saved settings survive.
+      name: "tlhamosesha-app",
+      version: 2,
+      // v1 carried demo data (a fake profile, workspaces and a seeded welcome
+      // notification). Drop it, keep the user's real settings and history.
+      migrate: (persisted, version) => {
+        const s = (persisted ?? {}) as Partial<AppState> & { workspaces?: unknown; settings?: Record<string, unknown> };
+        if (version < 2) {
+          delete s.workspaces;
+          if (s.settings) {
+            delete s.settings.workspace;
+            delete s.settings.displayName;
+            // Cloud vision became opt-in in v2.
+            s.settings.cloud = false;
+          }
+          s.notifications = (s.notifications ?? []).filter((n) => n.id !== "welcome");
+        }
+        return s as AppState;
+      },
+    },
   ),
 );
 

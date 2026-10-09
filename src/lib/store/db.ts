@@ -1,5 +1,5 @@
 // Browser persistence (IndexedDB) for projects, which carry large image payloads.
-import { createStore, del, get, set, values } from "idb-keyval";
+import { clear, createStore, del, get, set, values } from "idb-keyval";
 import type { Project, ProjectSummary } from "../types";
 
 const isBrowser = typeof indexedDB !== "undefined";
@@ -29,19 +29,31 @@ export function summarize(p: Project): ProjectSummary {
   };
 }
 
+/** Turns low-level storage failures into something a person can act on. */
+export function storageErrorMessage(e: unknown) {
+  const name = (e as { name?: string })?.name ?? "";
+  if (name === "QuotaExceededError")
+    return "Your browser is out of storage space for Decon. Delete some projects (or export a backup and clear them) and try again.";
+  if (name === "InvalidStateError" || name === "SecurityError" || name === "UnknownError")
+    return "Your browser blocked saving. Private or incognito windows, or strict privacy settings, can prevent Decon from storing projects.";
+  return e instanceof Error ? e.message : "Something went wrong while saving.";
+}
+
 export async function putProject(p: Project) {
-  if (!projectsStore) return;
+  if (!projectsStore || !summaryStore) throw new Error("This browser doesn't support saving projects (IndexedDB is unavailable).");
   await set(p.id, p, projectsStore);
   await set(p.id, summarize(p), summaryStore);
-  // Best-effort server sync (no-op when no database is configured).
-  fetch("/api/projects", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    // Inline images stay in the browser; this keeps requests under serverless body limits (4.5 MB on Vercel).
-    body: JSON.stringify({ id: p.id, name: p.name, analysis: p.analysis, scene: p.scene }, (_k, v) =>
-      typeof v === "string" && v.startsWith("data:") ? `[inline:${Math.round(v.length / 1024)}KB]` : v,
-    ),
-  }).catch(() => undefined);
+  // Optional server sync, off unless the operator enables a database
+  // (NEXT_PUBLIC_SERVER_SYNC=1). By default nothing about a project leaves the browser.
+  if (process.env.NEXT_PUBLIC_SERVER_SYNC === "1")
+    fetch("/api/projects", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      // Inline images stay in the browser; this keeps requests under serverless body limits (4.5 MB on Vercel).
+      body: JSON.stringify({ id: p.id, name: p.name, analysis: p.analysis, scene: p.scene }, (_k, v) =>
+        typeof v === "string" && v.startsWith("data:") ? `[inline:${Math.round(v.length / 1024)}KB]` : v,
+      ),
+    }).catch(() => undefined);
 }
 
 export async function getProject(id: string) {
@@ -65,4 +77,11 @@ export async function allSummaries(): Promise<ProjectSummary[]> {
   if (!summaryStore) return [];
   const list = await values<ProjectSummary>(summaryStore);
   return list.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+}
+
+/** Removes every project and summary saved in this browser. */
+export async function clearAllProjects() {
+  if (!projectsStore || !summaryStore) return;
+  await clear(projectsStore);
+  await clear(summaryStore);
 }

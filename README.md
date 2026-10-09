@@ -13,9 +13,19 @@ npm install          # also generates the Prisma client and copies the OCR asset
 npm run dev          # http://localhost:3000
 ```
 
-On the Home page, choose one of the three sample posters (**Matchday Semi-Final**, **Airstride Launch** or **Summer Live Banner**) to watch the whole pipeline run without uploading anything.
+`/` is the public landing page; the app itself starts at `/home`. Click **See an example** to watch the whole pipeline run on a bundled poster without uploading anything.
 
-You don't need an API key or a database. Everything runs on your device, and projects are saved in the browser (IndexedDB).
+You don't need an API key or a database. Everything runs on your device, and projects are saved in the browser (IndexedDB). Users can back up, restore and delete their data from **Settings → Your data**.
+
+### Before launching publicly
+
+- Set `contactEmail` (and `operator`, your legal name) in `src/lib/brand.ts`; the Privacy Policy and Terms show it.
+- Have the Privacy Policy (`/privacy`) and Terms of Use (`/terms`) reviewed by a lawyer for your jurisdiction.
+- Set `NEXT_PUBLIC_SITE_URL` once you have a custom domain (on Vercel the production URL is detected automatically).
+
+### Renaming the product
+
+The name, tagline, description and legal details live in `src/lib/brand.ts`. The logo artwork is in `src/components/shell/logo.tsx`, `public/icon.svg`, `src/app/apple-icon.tsx` and `src/app/opengraph-image.tsx`. Browser storage keys intentionally keep their original names so saved projects survive a rename.
 
 ### Optional configuration (`.env`, see `.env.example`)
 
@@ -23,7 +33,10 @@ You don't need an API key or a database. Everything runs on your device, and pro
 | --- | --- |
 | `OPENAI_API_KEY`, `GEMINI_API_KEY`, `ANTHROPIC_API_KEY` | Adds OpenAI, Gemini and Claude Vision to the ensemble for better object labels, font identification and design-type votes |
 | `VISION_SERVICE_URL` | Points at the YOLO + SAM + rembg microservice in `services/vision` |
-| `DATABASE_URL` | Also syncs every analysis to PostgreSQL. Run `npm run db:push` once |
+| `NEXT_PUBLIC_SITE_URL` | Public base URL for canonical links, the sitemap and share images |
+| `DATABASE_URL` + `NEXT_PUBLIC_SERVER_SYNC=1` | Also syncs every analysis to PostgreSQL (both are required). Run `npm run db:push` once. Leave unset to keep all project data in the browser |
+
+Cloud vision is **opt-in for users**: when providers are configured, a "Cloud vision" switch appears in Settings, off by default.
 
 ## What the pipeline extracts
 

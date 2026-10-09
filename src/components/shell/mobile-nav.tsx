@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { isActive } from "./nav-items";
 
 const ITEMS = [
-  { href: "/", label: "Home", icon: Home },
+  { href: "/home", label: "Home", icon: Home },
   { href: "/projects", label: "Projects", icon: FolderKanban },
   { href: "/upload", label: "Upload", icon: UploadCloud, primary: true },
   { href: "/downloads", label: "Downloads", icon: Download },

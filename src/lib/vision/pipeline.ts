@@ -100,7 +100,6 @@ export async function runPipeline(src: string, opt: PipelineOptions): Promise<Pi
   const tSeg = performance.now();
   const seg = segment(seg0, opt.sensitivity);
   opt.onStep("segment", "done", `${seg.regions.length} regions`);
-  if ((globalThis as { __TL_DEBUG?: boolean }).__TL_DEBUG) debugMasks(seg0, seg);
   await nextFrame();
 
   // ---- OCR and cloud in parallel
@@ -393,22 +392,3 @@ function approxRatio(r: number) {
 
 export const ms = (t: number) => Math.round(performance.now() - t);
 
-/** Debug aid: exposes saliency + mask images on window.__TL_SEG (set window.__TL_DEBUG = true). */
-function debugMasks(r: { width: number; height: number }, seg: { saliency: Float32Array; mask: Uint8Array; regions: unknown[] }) {
-  const img = (f: (i: number) => number) => {
-    const { canvas, ctx } = makeCanvas(r.width, r.height);
-    const d = ctx.createImageData(r.width, r.height);
-    for (let i = 0; i < r.width * r.height; i++) {
-      const v = f(i);
-      d.data[i * 4] = d.data[i * 4 + 1] = d.data[i * 4 + 2] = v;
-      d.data[i * 4 + 3] = 255;
-    }
-    ctx.putImageData(d, 0, 0);
-    return canvas.toDataURL();
-  };
-  (globalThis as { __TL_SEG?: unknown }).__TL_SEG = {
-    saliency: img((i) => seg.saliency[i] * 255),
-    mask: img((i) => seg.mask[i] * 255),
-    regions: seg.regions,
-  };
-}

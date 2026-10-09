@@ -1,93 +1,119 @@
 "use client";
-import { useEffect, useState } from "react";
-import { CheckCircle2, CircleDashed, Cpu, Database, KeyRound, SlidersHorizontal, User, XCircle } from "lucide-react";
+import Link from "next/link";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Database, Download, HardDrive, Info, Palette, ShieldCheck, SlidersHorizontal, Trash2, Upload } from "lucide-react";
 import { PageHeader } from "@/components/common/page-header";
-import { Badge } from "@/components/ui/badge";
+import { ThemeSegmented } from "@/components/shell/theme-toggle";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
+import { Progress } from "@/components/ui/progress";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
-import { ThemeSegmented } from "@/components/shell/theme-toggle";
-import { useApp } from "@/lib/store/app";
+import { BRAND } from "@/lib/brand";
+import { useApp, useLibrary } from "@/lib/store/app";
+import { createBackup, requestPersistence, restoreBackup, storageInfo, type StorageInfo } from "@/lib/store/backup";
+import { clearAllProjects, storageErrorMessage } from "@/lib/store/db";
+import { downloadBlob, formatBytes } from "@/lib/utils";
 
 interface Health {
-  providers: { id: string; label: string; enabled: boolean; model?: string }[];
-  database: "connected" | "unconfigured" | "error";
+  providers: { id: string; label: string; enabled: boolean }[];
 }
 
-const ENV_KEYS: Record<string, string> = {
-  openai: "OPENAI_API_KEY",
-  gemini: "GEMINI_API_KEY",
-  claude: "ANTHROPIC_API_KEY",
-  "vision-service": "VISION_SERVICE_URL",
-};
-
 export default function SettingsPage() {
-  const { settings, setSettings } = useApp();
-  const [health, setHealth] = useState<Health | null>(null);
+  const { settings, setSettings, clearExports, clearNotifications } = useApp();
+  const { summaries, refresh } = useLibrary();
+  const [providers, setProviders] = useState<Health["providers"]>([]);
+  const [storage, setStorage] = useState<StorageInfo | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [message, setMessage] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const loadStorage = useCallback(() => storageInfo().then(setStorage), []);
 
   useEffect(() => {
     fetch("/api/health")
       .then((r) => r.json())
-      .then(setHealth)
-      .catch(() => setHealth(null));
-  }, []);
+      .then((h: Health) => setProviders(h.providers.filter((p) => p.enabled)))
+      .catch(() => setProviders([]));
+    loadStorage();
+  }, [loadStorage]);
+
+  const exportBackup = async () => {
+    setBusy("export");
+    setMessage(null);
+    try {
+      const { blob, count } = await createBackup();
+      downloadBlob(blob, `decon-backup-${new Date().toISOString().slice(0, 10)}.json`);
+      setMessage({ tone: "ok", text: `Backup downloaded with ${count} project${count === 1 ? "" : "s"}.` });
+    } catch (e) {
+      setMessage({ tone: "error", text: storageErrorMessage(e) });
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const importBackup = async (f?: File) => {
+    if (!f) return;
+    setBusy("import");
+    setMessage(null);
+    try {
+      const { restored, skipped } = await restoreBackup(f);
+      await refresh();
+      await loadStorage();
+      setMessage({
+        tone: "ok",
+        text: `Restored ${restored} project${restored === 1 ? "" : "s"}${skipped ? `; ${skipped} entr${skipped === 1 ? "y was" : "ies were"} unreadable and skipped` : ""}.`,
+      });
+    } catch (e) {
+      setMessage({ tone: "error", text: storageErrorMessage(e) });
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const deleteEverything = async () => {
+    setBusy("delete");
+    try {
+      await clearAllProjects();
+      clearExports();
+      clearNotifications();
+      await refresh();
+      await loadStorage();
+      setMessage({ tone: "ok", text: "All projects and history on this device were deleted." });
+    } catch (e) {
+      setMessage({ tone: "error", text: storageErrorMessage(e) });
+    } finally {
+      setBusy(null);
+      setConfirmDelete(false);
+    }
+  };
+
+  const keepSafe = async () => {
+    const ok = await requestPersistence();
+    await loadStorage();
+    setMessage(
+      ok
+        ? { tone: "ok", text: "Your browser will now keep Decon's data even when storage runs low." }
+        : { tone: "error", text: "Your browser declined. Some browsers only allow this for sites you visit often or have bookmarked." },
+    );
+  };
+
+  const usedPct = storage?.usage != null && storage.quota ? (storage.usage / storage.quota) * 100 : 0;
 
   return (
-    <div className="mx-auto max-w-[1100px] space-y-6 px-4 py-8 sm:px-8">
-      <PageHeader eyebrow="Settings" title="Studio settings" description="Tune the vision pipeline, connect AI providers and manage your workspace." />
+    <div className="mx-auto max-w-[960px] space-y-6 px-4 py-8 sm:px-8">
+      <PageHeader eyebrow="Settings" title="Settings" description="Appearance, processing options and the data stored on this device." />
 
       <Card>
         <CardHeader>
-          <div>
-            <CardTitle className="flex items-center gap-2"><Cpu className="h-4 w-4 text-brand" /> AI vision engines</CardTitle>
-            <CardDescription>Server-side providers are enabled with environment variables. Results are merged with the on-device pipeline.</CardDescription>
-          </div>
-        </CardHeader>
-        <CardContent className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <EngineRow label="On-device CV" detail="Saliency segmentation · connected components · matting" status="on" />
-          <EngineRow label="Tesseract OCR" detail="WASM, runs in your browser" status={settings.ocr ? "on" : "off"} />
-          {(health?.providers ?? []).map((p) => (
-            <EngineRow
-              key={p.id}
-              label={p.label}
-              detail={p.enabled ? p.model ?? "Configured" : `Set ${ENV_KEYS[p.id]} to enable`}
-              status={p.enabled ? (settings.cloud ? "on" : "off") : "missing"}
-            />
-          ))}
-          {!health && <p className="text-sm text-muted-foreground">Checking provider status…</p>}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <div>
-            <CardTitle className="flex items-center gap-2"><SlidersHorizontal className="h-4 w-4 text-brand" /> Pipeline</CardTitle>
-            <CardDescription>Applies to new breakdowns.</CardDescription>
-          </div>
+          <CardTitle className="flex items-center gap-2"><Palette className="h-4 w-4 text-brand" /> Appearance</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          <ToggleRow label="Text recognition (OCR)" hint="Read every line of text and estimate typography." checked={settings.ocr} onChange={(v) => setSettings({ ocr: v })} />
-          <ToggleRow label="Inverted OCR pass" hint="Second pass for light text on dark backgrounds. Slower, more complete." checked={settings.ocrInvertPass} onChange={(v) => setSettings({ ocrInvertPass: v })} />
-          <ToggleRow label="Use cloud vision providers" hint="Send a downscaled copy to configured providers for better labels and font matching." checked={settings.cloud} onChange={(v) => setSettings({ cloud: v })} />
-          <div>
-            <div className="mb-2 flex justify-between text-sm">
-              <span className="text-white">Segmentation sensitivity</span>
-              <span className="font-mono text-brand">{Math.round(settings.sensitivity * 100)}</span>
-            </div>
-            <Slider value={[settings.sensitivity]} min={0} max={1} step={0.05} onValueChange={([v]) => setSettings({ sensitivity: v })} />
-            <p className="mt-2 text-xs text-muted-foreground">Higher finds fainter elements; lower keeps only strong foreground.</p>
-          </div>
-          <div>
-            <div className="mb-2 flex justify-between text-sm">
-              <span className="text-white">Maximum objects</span>
-              <span className="font-mono text-brand">{settings.maxObjects}</span>
-            </div>
-            <Slider value={[settings.maxObjects]} min={4} max={30} step={1} onValueChange={([v]) => setSettings({ maxObjects: v })} />
-          </div>
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
-              <div className="text-sm text-white">Appearance</div>
+              <div className="text-sm text-white">Theme</div>
               <div className="text-xs text-muted-foreground">Light, dark, or follow your device setting.</div>
             </div>
             <ThemeSegmented />
@@ -96,71 +122,148 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card id="profile">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2"><User className="h-4 w-4 text-brand" /> Profile</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <label className="block text-xs text-muted-foreground">Display name</label>
-            <Input value={settings.displayName} onChange={(e) => setSettings({ displayName: e.target.value })} />
-          </CardContent>
-        </Card>
-        <Card id="workspace">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2"><Database className="h-4 w-4 text-brand" /> Workspace & storage</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <label className="block text-xs text-muted-foreground">Active workspace</label>
-            <Input value={settings.workspace} onChange={(e) => setSettings({ workspace: e.target.value })} />
-            <div className="flex items-center justify-between rounded-xl border border-white/[0.06] p-3 text-sm">
-              <span>PostgreSQL sync</span>
-              {health?.database === "connected" ? (
-                <Badge variant="success">Connected</Badge>
-              ) : health?.database === "error" ? (
-                <Badge variant="danger">Error</Badge>
-              ) : (
-                <Badge variant="secondary">Browser only</Badge>
+      <Card>
+        <CardHeader>
+          <div>
+            <CardTitle className="flex items-center gap-2"><SlidersHorizontal className="h-4 w-4 text-brand" /> Processing</CardTitle>
+            <CardDescription>Applies to new breakdowns.</CardDescription>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <ToggleRow label="Read text (OCR)" hint="Detect every line of text and estimate its typography." checked={settings.ocr} onChange={(v) => setSettings({ ocr: v })} />
+          <ToggleRow
+            label="Second pass for light text"
+            hint="Finds light text on dark backgrounds more reliably. Takes a little longer."
+            checked={settings.ocrInvertPass}
+            onChange={(v) => setSettings({ ocrInvertPass: v })}
+          />
+          <div>
+            <div className="mb-2 flex justify-between text-sm">
+              <span className="text-white">Detection sensitivity</span>
+              <span className="font-mono text-muted-foreground">{Math.round(settings.sensitivity * 100)}</span>
+            </div>
+            <Slider value={[settings.sensitivity]} min={0} max={1} step={0.05} onValueChange={([v]) => setSettings({ sensitivity: v })} aria-label="Detection sensitivity" />
+            <p className="mt-2 text-xs text-muted-foreground">Higher finds fainter elements; lower keeps only strong shapes.</p>
+          </div>
+          <div>
+            <div className="mb-2 flex justify-between text-sm">
+              <span className="text-white">Maximum objects per design</span>
+              <span className="font-mono text-muted-foreground">{settings.maxObjects}</span>
+            </div>
+            <Slider value={[settings.maxObjects]} min={4} max={30} step={1} onValueChange={([v]) => setSettings({ maxObjects: v })} aria-label="Maximum objects" />
+          </div>
+          {providers.length > 0 && (
+            <div className="rounded-lg border border-white/[0.08] p-4">
+              <ToggleRow
+                label="Cloud vision (optional)"
+                hint={`Sends a downscaled copy of each image to ${providers.map((p) => p.label).join(", ")} for better labels and font matching. Off by default.`}
+                checked={settings.cloud}
+                onChange={(v) => setSettings({ cloud: v })}
+              />
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card id="data">
+        <CardHeader>
+          <div>
+            <CardTitle className="flex items-center gap-2"><Database className="h-4 w-4 text-brand" /> Your data</CardTitle>
+            <CardDescription>
+              Projects are saved only in this browser on this device. Clearing your browsing data deletes them, so keep a backup.
+            </CardDescription>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="rounded-lg border border-white/[0.08] p-4">
+            <div className="flex items-center justify-between gap-3 text-sm">
+              <span className="flex items-center gap-2 text-white"><HardDrive className="h-4 w-4 text-muted-foreground" /> Storage used</span>
+              <span className="text-muted-foreground">
+                {summaries.length} project{summaries.length === 1 ? "" : "s"}
+                {storage?.usage != null && ` · ${formatBytes(storage.usage)}`}
+                {storage?.quota ? ` of ${formatBytes(storage.quota)} available` : ""}
+              </span>
+            </div>
+            {storage?.quota ? <Progress value={Math.max(usedPct, 0.5)} className="mt-3" /> : null}
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
+              <span className="flex items-center gap-1.5">
+                <ShieldCheck className="h-3.5 w-3.5" />
+                {storage?.persisted ? "Protected from automatic cleanup." : "Your browser may clear this data if the device runs low on space."}
+              </span>
+              {storage && !storage.persisted && storage.persisted !== null && (
+                <Button variant="outline" size="sm" onClick={keepSafe}>Keep my data</Button>
               )}
             </div>
-            <p className="text-xs text-muted-foreground">
-              Projects are always stored in this browser (IndexedDB). Set <code className="text-brand">DATABASE_URL</code> and run{" "}
-              <code className="text-brand">npm run db:push</code> to also sync analyses to PostgreSQL.
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <Button variant="secondary" onClick={exportBackup} disabled={!!busy || summaries.length === 0}>
+              <Download /> {busy === "export" ? "Preparing…" : "Export backup"}
+            </Button>
+            <Button variant="secondary" onClick={() => fileRef.current?.click()} disabled={!!busy}>
+              <Upload /> {busy === "import" ? "Restoring…" : "Restore from backup"}
+            </Button>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="application/json,.json"
+              className="hidden"
+              onChange={(e) => {
+                importBackup(e.target.files?.[0]);
+                e.target.value = "";
+              }}
+            />
+            <Button variant="ghost" className="text-rose-700 hover:text-rose-800 dark:text-rose-300 hover:dark:text-rose-200 sm:ml-auto" onClick={() => setConfirmDelete(true)} disabled={!!busy}>
+              <Trash2 /> Delete all data
+            </Button>
+          </div>
+
+          {message && (
+            <p
+              role="status"
+              className={
+                message.tone === "ok"
+                  ? "rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-3 py-2 text-sm text-emerald-700 dark:text-emerald-300"
+                  : "rounded-lg border border-rose-400/30 bg-rose-400/10 px-3 py-2 text-sm text-rose-700 dark:text-rose-300"
+              }
+            >
+              {message.text}
             </p>
-          </CardContent>
-        </Card>
-      </div>
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2"><KeyRound className="h-4 w-4 text-brand" /> Environment reference</CardTitle>
+          <CardTitle className="flex items-center gap-2"><Info className="h-4 w-4 text-brand" /> About</CardTitle>
         </CardHeader>
-        <CardContent>
-          <pre className="scrollbar-thin overflow-x-auto rounded-xl bg-surface-sunken p-4 font-mono text-xs leading-relaxed text-white/80">{`OPENAI_API_KEY=...        # OpenAI Vision
-GEMINI_API_KEY=...        # Gemini Vision
-ANTHROPIC_API_KEY=...     # Claude Vision
-VISION_SERVICE_URL=...    # YOLO + SAM + rembg microservice (services/vision)
-DATABASE_URL=postgresql://...`}</pre>
+        <CardContent className="space-y-2 text-sm text-muted-foreground">
+          <p>
+            <span className="font-medium text-white">{BRAND.name}</span> — {BRAND.tagline}. Breakdowns are automated estimates and work best on clean
+            digital graphics; check results before reusing them.
+          </p>
+          <p className="flex gap-4">
+            <Link href="/privacy" className="text-brand hover:underline">Privacy Policy</Link>
+            <Link href="/terms" className="text-brand hover:underline">Terms of Use</Link>
+          </p>
         </CardContent>
       </Card>
-    </div>
-  );
-}
 
-function EngineRow({ label, detail, status }: { label: string; detail: string; status: "on" | "off" | "missing" }) {
-  return (
-    <div className="flex min-w-0 items-center gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
-      {status === "on" ? (
-        <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-      ) : status === "off" ? (
-        <XCircle className="h-5 w-5 text-muted-foreground" />
-      ) : (
-        <CircleDashed className="h-5 w-5 text-muted-foreground" />
-      )}
-      <div className="min-w-0">
-        <div className="text-sm font-medium text-white">{label}</div>
-        <div className="truncate text-xs text-muted-foreground">{detail}</div>
-      </div>
+      <Dialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <DialogContent>
+          <DialogTitle>Delete all data on this device?</DialogTitle>
+          <DialogDescription className="mt-2">
+            This permanently removes {summaries.length} project{summaries.length === 1 ? "" : "s"}, their extracted assets, your export history and
+            notifications. Your settings and theme stay. This can&apos;t be undone — export a backup first if you might need them.
+          </DialogDescription>
+          <div className="mt-6 flex justify-end gap-2">
+            <Button variant="secondary" onClick={() => setConfirmDelete(false)}>Cancel</Button>
+            <Button variant="destructive" onClick={deleteEverything} disabled={busy === "delete"}>
+              <Trash2 /> {busy === "delete" ? "Deleting…" : "Delete everything"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -172,7 +275,7 @@ function ToggleRow({ label, hint, checked, onChange }: { label: string; hint: st
         <div className="text-sm text-white">{label}</div>
         <div className="text-xs text-muted-foreground">{hint}</div>
       </div>
-      <Switch checked={checked} onCheckedChange={onChange} />
+      <Switch checked={checked} onCheckedChange={onChange} aria-label={label} />
     </div>
   );
 }

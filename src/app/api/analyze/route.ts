@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { mergeProviders, runProviders } from "@/lib/ai/providers";
+import { mergeProviders, providerStatus, runProviders } from "@/lib/ai/providers";
+import { clientKey, rateLimit } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -9,6 +10,10 @@ export const maxDuration = 90;
 const Body = z.object({ image: z.string().startsWith("data:image/").max(12_000_000) });
 
 export async function POST(req: Request) {
+  if (!providerStatus().some((p) => p.enabled)) return NextResponse.json({ error: "Cloud vision is not available." }, { status: 404 });
+  const limit = rateLimit(`analyze:${clientKey(req)}`, 20, 10 * 60_000);
+  if (!limit.ok)
+    return NextResponse.json({ error: "Too many requests. Please wait a few minutes." }, { status: 429, headers: { "retry-after": String(limit.retryAfter) } });
   const parsed = Body.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Send { image: <data URL> }" }, { status: 400 });
   const providers = await runProviders(parsed.data.image);

@@ -4,6 +4,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getDb, getDemoUser } from "@/lib/db";
+import { clientKey, rateLimit } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -35,6 +36,7 @@ const KIND: Record<string, string> = {
 export async function POST(req: Request) {
   const db = await getDb();
   if (!db) return NextResponse.json({ database: "unconfigured" }, { status: 202 });
+  if (!rateLimit(`projects:${clientKey(req)}`, 60, 10 * 60_000).ok) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   const parsed = Sync.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Invalid body" }, { status: 400 });
   const { id, name, analysis, scene } = parsed.data;

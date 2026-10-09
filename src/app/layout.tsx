@@ -1,12 +1,17 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { BRAND, fullTitle } from "@/lib/brand";
+import { SITE_URL } from "@/lib/site";
 import { THEME_SCRIPT } from "@/lib/theme-script";
 
 export const metadata: Metadata = {
-  title: { default: "Decon — Visual Reverse Engineering", template: "%s · Decon" },
-  description:
-    "Upload any poster, banner or infographic and Decon breaks it into text, images, backgrounds, colours and layout — then rebuilds it as an editable design.",
+  metadataBase: new URL(SITE_URL),
+  title: { default: fullTitle, template: `%s · ${BRAND.name}` },
+  description: BRAND.description,
+  applicationName: BRAND.name,
   icons: { icon: "/icon.svg" },
+  openGraph: { type: "website", siteName: BRAND.name, title: fullTitle, description: BRAND.description, url: "/" },
+  twitter: { card: "summary_large_image", title: fullTitle, description: BRAND.description },
 };
 
 export const viewport: Viewport = {

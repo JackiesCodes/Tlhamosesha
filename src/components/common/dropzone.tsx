@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { FileImage, UploadCloud } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,21 @@ export function Dropzone({ onFile, compact, className }: { onFile: (f: File) => 
     [onFile],
   );
 
+  // Paste an image anywhere on the page (not just when the drop area has focus).
+  useEffect(() => {
+    const onPaste = (e: ClipboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (t && (t.isContentEditable || ["INPUT", "TEXTAREA"].includes(t.tagName))) return;
+      const f = Array.from(e.clipboardData?.files ?? []).find((x) => x.type.startsWith("image/"));
+      if (f) {
+        e.preventDefault();
+        accept(f);
+      }
+    };
+    window.addEventListener("paste", onPaste);
+    return () => window.removeEventListener("paste", onPaste);
+  }, [accept]);
+
   return (
     <motion.div
       onDragOver={(e) => {
@@ -36,7 +51,6 @@ export function Dropzone({ onFile, compact, className }: { onFile: (f: File) => 
         setOver(false);
         accept(e.dataTransfer.files?.[0]);
       }}
-      onPaste={(e) => accept(e.clipboardData.files?.[0])}
       animate={{ scale: over ? 1.01 : 1 }}
       className={cn(
         "relative flex flex-col items-center justify-center overflow-hidden rounded-3xl border-2 border-dashed text-center transition-colors",
