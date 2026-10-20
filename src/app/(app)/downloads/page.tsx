@@ -76,7 +76,7 @@ export default function DownloadsPage() {
           </div>
           {projects && shown.length === 0 && (
             <div className="panel px-6 py-14 text-center text-sm text-muted-foreground">
-              No assets yet — <Link href="/upload" className="text-brand hover:underline">break down a poster</Link> to build your library.
+              No assets yet — <Link href="/upload" className="text-brand underline underline-offset-2">break down a poster</Link> to build your library.
             </div>
           )}
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6">

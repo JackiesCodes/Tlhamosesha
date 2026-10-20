@@ -152,7 +152,8 @@ export function SceneView({
                 height: l.height,
                 opacity: l.visible ? l.opacity : 0.25,
                 transform: l.rotation ? `rotate(${l.rotation}deg)` : undefined,
-                outline: hl ? `${2 / scale}px solid #3B82F6` : undefined,
+                outline: hl ? `${2 / scale}px solid #FFFFFF` : undefined,
+                boxShadow: hl ? `0 0 0 ${4 / scale}px #0A0A0A` : undefined,
                 outlineOffset: hl ? 2 / scale : undefined,
               }}
             >
@@ -162,7 +163,7 @@ export function SceneView({
               }} />
               {selected && <Handles scale={scale} locked={l.locked} onHandle={(e, h) => begin(e, l, h)} />}
               {interactive && !selected && (
-                <div className="pointer-events-none absolute inset-0 opacity-0 transition hover:opacity-100" style={{ boxShadow: `inset 0 0 0 ${1 / scale}px rgba(59,130,246,.6)` }} />
+                <div className="pointer-events-none absolute inset-0 opacity-0 transition hover:opacity-100" style={{ boxShadow: `inset 0 0 0 ${1 / scale}px rgba(255,255,255,.9), inset 0 0 0 ${2 / scale}px rgba(10,10,10,.6)` }} />
               )}
             </div>
           );
@@ -234,22 +235,22 @@ function Handles({ scale, locked, onHandle }: { scale: number; locked: boolean; 
   };
   return (
     <>
-      <div className="pointer-events-none absolute inset-0" style={{ boxShadow: `0 0 0 ${b}px ${locked ? "#64748b" : "#3B82F6"}` }} />
+      <div className="pointer-events-none absolute inset-0" style={{ boxShadow: `0 0 0 ${b}px ${locked ? "#A1A1AA" : "#FFFFFF"}, 0 0 0 ${b * 2}px #0A0A0A` }} />
       {!locked &&
         (Object.keys(pos) as Exclude<Handle, "rot">[]).map((h) => (
           <div
             key={h}
             onPointerDown={(e) => onHandle(e, h)}
-            className="absolute rounded-[2px] bg-onbrand"
-            style={{ ...pos[h], width: s, height: s, boxShadow: `0 0 0 ${b}px #3B82F6` }}
+            className="absolute rounded-[2px] bg-[#FFFFFF]"
+            style={{ ...pos[h], width: s, height: s, boxShadow: `0 0 0 ${b}px #0A0A0A` }}
           />
         ))}
       {!locked && (
         <>
-          <div className="pointer-events-none absolute left-1/2 bg-brand" style={{ top: -28 / scale, width: b, height: 22 / scale, transform: "translateX(-50%)" }} />
+          <div className="pointer-events-none absolute left-1/2 bg-[#0A0A0A]" style={{ top: -28 / scale, width: b, height: 22 / scale, transform: "translateX(-50%)" }} />
           <div
             onPointerDown={(e) => onHandle(e, "rot")}
-            className="absolute left-1/2 cursor-grab rounded-full bg-brand"
+            className="absolute left-1/2 cursor-grab rounded-full bg-[#0A0A0A] ring-2 ring-[#FFFFFF]"
             style={{ top: -34 / scale, width: s * 1.1, height: s * 1.1, transform: "translateX(-50%)" }}
           />
         </>

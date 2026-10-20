@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Logo } from "@/components/shell/logo";
 import { ThemeToggle } from "@/components/shell/theme-toggle";
 import { Button } from "@/components/ui/button";
+import { BRAND } from "@/lib/brand";
 
 const LINKS = [
   { href: "/#features", label: "Features" },
@@ -14,8 +15,8 @@ export function SiteHeader() {
   return (
     <header className="sticky top-0 z-30 border-b border-white/[0.06] bg-ink/95 backdrop-blur supports-[backdrop-filter]:bg-ink/80">
       <div className="mx-auto flex h-16 max-w-6xl items-center gap-6 px-4 sm:px-6">
-        <Link href="/" aria-label="Decon home">
-          <Logo />
+        <Link href="/" aria-label={`${BRAND.name} home`}>
+          <Logo compactOnMobile />
         </Link>
         <nav className="ml-4 hidden items-center gap-6 text-sm text-muted-foreground md:flex" aria-label="Site">
           {LINKS.map((l) => (
@@ -27,7 +28,7 @@ export function SiteHeader() {
         <div className="ml-auto flex items-center gap-1.5">
           <ThemeToggle />
           <Button asChild size="sm">
-            <Link href="/home">Open Decon</Link>
+            <Link href="/home">Open {BRAND.name}</Link>
           </Button>
         </div>
       </div>

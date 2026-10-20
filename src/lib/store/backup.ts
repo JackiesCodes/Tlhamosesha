@@ -4,11 +4,13 @@
 import type { Project } from "../types";
 import { allProjects, putProject } from "./db";
 
-export const BACKUP_FORMAT = "decon-backup";
+export const BACKUP_FORMAT = "revvisual-backup";
+/** Backups made before the RevVisual rename restore too. */
+const ACCEPTED_FORMATS = [BACKUP_FORMAT, "decon-backup"];
 const BACKUP_VERSION = 1;
 
 interface BackupFile {
-  format: typeof BACKUP_FORMAT;
+  format: string;
   version: number;
   exportedAt: string;
   projects: Project[];
@@ -40,10 +42,10 @@ export async function restoreBackup(file: File): Promise<{ restored: number; ski
   try {
     data = JSON.parse(await file.text());
   } catch {
-    throw new Error("That file isn't a Decon backup (it couldn't be read as JSON).");
+    throw new Error("That file isn't a RevVisual backup (it couldn't be read as JSON).");
   }
-  if (data.format !== BACKUP_FORMAT || !Array.isArray(data.projects)) throw new Error("That file isn't a Decon backup.");
-  if ((data.version ?? 0) > BACKUP_VERSION) throw new Error("This backup was made by a newer version of Decon.");
+  if (!ACCEPTED_FORMATS.includes(data.format ?? "") || !Array.isArray(data.projects)) throw new Error("That file isn't a RevVisual backup.");
+  if ((data.version ?? 0) > BACKUP_VERSION) throw new Error("This backup was made by a newer version of RevVisual.");
   let restored = 0;
   let skipped = 0;
   for (const p of data.projects) {

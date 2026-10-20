@@ -18,17 +18,17 @@ function apply(pref: ThemePref) {
 function read(): ThemePref {
   try {
     const v = localStorage.getItem(THEME_KEY);
-    return v === "light" || v === "system" ? v : "dark";
+    return v === "dark" || v === "system" ? v : "light";
   } catch {
-    return "dark";
+    return "light";
   }
 }
 
 const listeners = new Set<(p: ThemePref) => void>();
 
 export function useTheme() {
-  const [pref, setPrefState] = useState<ThemePref>("dark");
-  const [resolved, setResolved] = useState<"light" | "dark">("dark");
+  const [pref, setPrefState] = useState<ThemePref>("light");
+  const [resolved, setResolved] = useState<"light" | "dark">("light");
 
   useEffect(() => {
     const p = read();

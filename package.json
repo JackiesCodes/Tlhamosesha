@@ -1,8 +1,8 @@
 {
-  "name": "decon",
+  "name": "revvisual",
   "version": "0.1.0",
   "private": true,
-  "description": "Decon — Visual Reverse Engineering: break posters and graphics into editable layers",
+  "description": "RevVisual — Visual Reverse Engineering: break posters and graphics into editable layers",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

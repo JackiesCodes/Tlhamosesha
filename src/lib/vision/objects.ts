@@ -178,7 +178,7 @@ export function cutout(
   const inks = texts
     .filter((t) => boxCoverage(t.box, box) > 0.5)
     .map((t) => ({ b: t.box, c: hexToRgb(t.color) }));
-  let kept = 0;
+  const ink = new Uint8Array(W * H);
   for (let y = 0; y < H; y++)
     for (let x = 0; x < W; x++) {
       const i = (y * W + x) * 4;
@@ -189,15 +189,39 @@ export function cutout(
       const mx = Math.min(mr.width - 1, Math.floor((box.x + x) * s));
       const my = Math.min(mr.height - 1, Math.floor((box.y + y) * s));
       const inMask = seg.mask[my * mr.width + mx] === 1;
-      let a = smoothstep(45, 120, dist);
-      if (inMask) a = Math.max(a, 0.85);
-      else a *= 0.35;
       const gx = box.x + x;
       const gy = box.y + y;
-      for (const ink of inks)
-        if (gx >= ink.b.x && gx <= ink.b.x + ink.b.width && gy >= ink.b.y && gy <= ink.b.y + ink.b.height && colorDistance(c, ink.c) < 170) a = 0;
+      let inText = false;
+      for (const t of inks) {
+        const m = Math.max(4, t.b.height * 0.25); // halo extends a little past the OCR box
+        if (gx >= t.b.x - m && gx <= t.b.x + t.b.width + m && gy >= t.b.y - m && gy <= t.b.y + t.b.height + m) {
+          inText = true;
+          if (colorDistance(c, t.c) < 170 && gx >= t.b.x && gx <= t.b.x + t.b.width && gy >= t.b.y && gy <= t.b.y + t.b.height) ink[y * W + x] = 1;
+        }
+      }
+      let a = smoothstep(45, 120, dist);
+      // Text inflates the saliency mask, so under a text line trust colour alone:
+      // otherwise the background around the letters is kept as a halo.
+      if (inMask && !inText) a = Math.max(a, 0.85);
+      else if (!inMask) a *= 0.35;
       d[i + 3] = Math.round(a * 255);
-      if (a > 0.5) kept++;
+    }
+  // Grow the removed text by a couple of pixels so its anti-aliased outline
+  // goes too, instead of leaving letter-shaped halos in the cut-out.
+  const grow = 2;
+  let kept = 0;
+  for (let y = 0; y < H; y++)
+    for (let x = 0; x < W; x++) {
+      let hit = false;
+      for (let dy = -grow; dy <= grow && !hit; dy++)
+        for (let dx = -grow; dx <= grow && !hit; dx++) {
+          const yy = y + dy;
+          const xx = x + dx;
+          if (yy >= 0 && yy < H && xx >= 0 && xx < W && ink[yy * W + xx]) hit = true;
+        }
+      const i = (y * W + x) * 4;
+      if (hit) d[i + 3] = 0;
+      if (d[i + 3] > 127) kept++;
     }
   ctx.putImageData(id, 0, 0);
   // feather

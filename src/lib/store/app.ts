@@ -73,7 +73,7 @@ export const useApp = create<AppState>()(
       clearNotifications: () => set({ notifications: [] }),
     }),
     {
-      // Storage key predates the Decon rename; kept so saved settings survive.
+      // Storage key predates the RevVisual rename; kept so saved settings survive.
       name: "tlhamosesha-app",
       version: 2,
       // v1 carried demo data (a fake profile, workspaces and a seeded welcome

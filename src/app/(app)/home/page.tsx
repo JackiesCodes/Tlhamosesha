@@ -6,6 +6,7 @@ import { ArrowRight, Boxes, Layers, Shapes, Type } from "lucide-react";
 import { Dropzone } from "@/components/common/dropzone";
 import { ProjectCard } from "@/components/common/project-card";
 import { Button } from "@/components/ui/button";
+import { BRAND } from "@/lib/brand";
 import { SAMPLES } from "@/lib/samples";
 import { fileToInput, useAnalyze } from "@/lib/store/analyze";
 import { useLibrary } from "@/lib/store/app";
@@ -40,7 +41,7 @@ export default function HomePage() {
               {hasProjects ? "Welcome back" : "Break down your first design"}
             </h1>
             <p className="mt-3 max-w-lg text-sm leading-relaxed text-muted-foreground">
-              Drop in a poster, banner, flyer or social graphic. Decon separates its text, images, logos, background, colours and
+              Drop in a poster, banner, flyer or social graphic. {BRAND.name} separates its text, images, logos, background, colours and
               layout, then rebuilds it as layers you can edit and export.
             </p>
           </div>

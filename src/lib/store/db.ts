@@ -3,7 +3,7 @@ import { clear, createStore, del, get, set, values } from "idb-keyval";
 import type { Project, ProjectSummary } from "../types";
 
 const isBrowser = typeof indexedDB !== "undefined";
-// IndexedDB names predate the Decon rename; kept so saved projects survive.
+// IndexedDB names predate the RevVisual rename; kept so saved projects survive.
 const projectsStore = isBrowser ? createStore("tlhamosesha-projects", "projects") : undefined;
 const summaryStore = isBrowser ? createStore("tlhamosesha-summaries", "summaries") : undefined;
 
@@ -33,9 +33,9 @@ export function summarize(p: Project): ProjectSummary {
 export function storageErrorMessage(e: unknown) {
   const name = (e as { name?: string })?.name ?? "";
   if (name === "QuotaExceededError")
-    return "Your browser is out of storage space for Decon. Delete some projects (or export a backup and clear them) and try again.";
+    return "Your browser is out of storage space for RevVisual. Delete some projects (or export a backup and clear them) and try again.";
   if (name === "InvalidStateError" || name === "SecurityError" || name === "UnknownError")
-    return "Your browser blocked saving. Private or incognito windows, or strict privacy settings, can prevent Decon from storing projects.";
+    return "Your browser blocked saving. Private or incognito windows, or strict privacy settings, can prevent RevVisual from storing projects.";
   return e instanceof Error ? e.message : "Something went wrong while saving.";
 }
 

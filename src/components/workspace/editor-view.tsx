@@ -16,7 +16,7 @@ export function EditorView({ project }: { project: Project }) {
   const { width: W, height: H } = project.scene;
   const scale = useFitScale(frame, W, H, zoom);
   const addLayer = useEditor((s) => s.addLayer);
-  const accent = project.analysis.palette.find((c) => c.role === "accent")?.hex ?? "#3B82F6";
+  const accent = project.analysis.palette.find((c) => c.role === "accent")?.hex ?? "#0A0A0A";
 
   const addText = () =>
     addLayer({

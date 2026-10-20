@@ -408,7 +408,7 @@ function LayoutTab({ project }: { project: Project }) {
             width={Math.max(0, W - l.margins.left - l.margins.right)}
             height={Math.max(0, H - l.margins.top - l.margins.bottom)}
             fill="none"
-            stroke="#3B82F6"
+            stroke="#38BDF8"
             strokeDasharray={`${stroke * 6} ${stroke * 4}`}
             strokeWidth={stroke}
           />
@@ -431,7 +431,7 @@ function LayoutTab({ project }: { project: Project }) {
           ))}
         </svg>
         <div className="mt-3 flex flex-wrap gap-4 text-[11px] text-muted-foreground">
-          <Legend color="#3B82F6" label="Margins" />
+          <Legend color="#38BDF8" label="Margins" />
           <Legend color="#A78BFA" label="Column gutters" />
           <Legend color="#FBBF24" label="Row gutters" />
           <Legend color="#34D399" label="Image blocks" />

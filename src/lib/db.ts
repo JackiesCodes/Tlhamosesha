@@ -20,8 +20,8 @@ export async function getDemoUser() {
   const db = await getDb();
   if (!db) return null;
   return db.user.upsert({
-    where: { email: "studio@decon.local" },
+    where: { email: "studio@revvisual.local" },
     update: {},
-    create: { email: "studio@decon.local", name: "Studio Owner", plan: "PRO" },
+    create: { email: "studio@revvisual.local", name: "Studio Owner", plan: "PRO" },
   });
 }

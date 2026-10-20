@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { LogoMark } from "@/components/shell/logo";
 import { Button } from "@/components/ui/button";
+import { BRAND } from "@/lib/brand";
 
 export default function NotFound() {
   return (
@@ -13,7 +14,7 @@ export default function NotFound() {
       </div>
       <div className="flex gap-2">
         <Button asChild>
-          <Link href="/home">Open Decon</Link>
+          <Link href="/home">Open {BRAND.name}</Link>
         </Button>
         <Button asChild variant="secondary">
           <Link href="/">Home page</Link>

@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { ChevronsLeft, ChevronsRight, ShieldCheck } from "lucide-react";
 import { Tooltip } from "@/components/ui/tooltip";
+import { BRAND } from "@/lib/brand";
 import { cn } from "@/lib/utils";
 import { Logo } from "./logo";
 import { NAV_ITEMS, isActive } from "./nav-items";
@@ -17,7 +18,7 @@ export function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle:
       className="relative hidden shrink-0 flex-col border-r border-white/[0.06] bg-surface lg:flex"
     >
       <div className={cn("flex h-16 items-center", collapsed ? "justify-center" : "px-5")}>
-        <Link href="/home" aria-label="Decon home">
+        <Link href="/home" aria-label={`${BRAND.name} home`}>
           <Logo collapsed={collapsed} />
         </Link>
       </div>

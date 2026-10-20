@@ -45,7 +45,7 @@ export default function SettingsPage() {
     setMessage(null);
     try {
       const { blob, count } = await createBackup();
-      downloadBlob(blob, `decon-backup-${new Date().toISOString().slice(0, 10)}.json`);
+      downloadBlob(blob, `revvisual-backup-${new Date().toISOString().slice(0, 10)}.json`);
       setMessage({ tone: "ok", text: `Backup downloaded with ${count} project${count === 1 ? "" : "s"}.` });
     } catch (e) {
       setMessage({ tone: "error", text: storageErrorMessage(e) });
@@ -95,7 +95,7 @@ export default function SettingsPage() {
     await loadStorage();
     setMessage(
       ok
-        ? { tone: "ok", text: "Your browser will now keep Decon's data even when storage runs low." }
+        ? { tone: "ok", text: `Your browser will now keep ${BRAND.name}'s data even when storage runs low.` }
         : { tone: "error", text: "Your browser declined. Some browsers only allow this for sites you visit often or have bookmarked." },
     );
   };
@@ -243,8 +243,8 @@ export default function SettingsPage() {
             digital graphics; check results before reusing them.
           </p>
           <p className="flex gap-4">
-            <Link href="/privacy" className="text-brand hover:underline">Privacy Policy</Link>
-            <Link href="/terms" className="text-brand hover:underline">Terms of Use</Link>
+            <Link href="/privacy" className="text-brand underline underline-offset-2">Privacy Policy</Link>
+            <Link href="/terms" className="text-brand underline underline-offset-2">Terms of Use</Link>
           </p>
         </CardContent>
       </Card>

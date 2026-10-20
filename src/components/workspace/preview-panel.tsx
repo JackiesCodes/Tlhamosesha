@@ -69,15 +69,15 @@ export function PreviewPanel({ project, className }: { project: Project; classNa
           </div>
 
           {previewMode === "split" && (
-            <div className="pointer-events-none absolute inset-y-0 w-0.5 bg-brand" style={{ left: `${split}%` }}>
-              <div className="absolute top-1/2 -ml-3 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full border-2 border-brand bg-ink text-[10px] text-brand">⇆</div>
+            <div className="pointer-events-none absolute inset-y-0 w-0.5 bg-[#FFFFFF] shadow-[0_0_0_1px_rgba(10,10,10,.7)]" style={{ left: `${split}%` }}>
+              <div className="absolute top-1/2 -ml-3 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full border-2 border-[#FFFFFF] bg-[#0A0A0A] text-[10px] text-[#FFFFFF]">⇆</div>
             </div>
           )}
 
           {boxes.map((b, i) => (
             <div
               key={i}
-              className="pointer-events-none absolute rounded-sm border-2 border-brand bg-brand/10"
+              className="pointer-events-none absolute rounded-sm border-2 border-[#FFFFFF] bg-[#FFFFFF]/10 shadow-[0_0_0_2px_#0A0A0A]"
               style={{ left: b.x * scale, top: b.y * scale, width: b.width * scale, height: b.height * scale }}
             />
           ))}

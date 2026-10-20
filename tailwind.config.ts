@@ -8,13 +8,14 @@ const config: Config = {
     container: { center: true, padding: "1.5rem", screens: { "2xl": "1440px" } },
     extend: {
       colors: {
-        // Graphite + single accent, in the style of Figma / Linear / Photopea.
+        // Monochrome, like the RevVisual mark: black on white (light) and white
+        // on near-black (dark), with neutral greys and no colour accent.
         // Values live in CSS variables (globals.css) so light and dark themes
         // swap without touching components. `white` is the theme's foreground
         // ink (white in dark mode, near-black in light mode); `onbrand` is a
         // true white for text sitting on the blue accent.
         white: "rgb(var(--fg) / <alpha-value>)",
-        onbrand: "#FFFFFF",
+        onbrand: "rgb(var(--onbrand) / <alpha-value>)",
         ink: "rgb(var(--ink) / <alpha-value>)",
         surface: {
           DEFAULT: "rgb(var(--surface) / <alpha-value>)",

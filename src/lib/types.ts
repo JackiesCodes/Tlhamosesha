@@ -1,4 +1,4 @@
-// Core domain model for Decon.
+// Core domain model for RevVisual.
 // All geometry is expressed in source-image pixels unless noted otherwise.
 
 export interface Box {

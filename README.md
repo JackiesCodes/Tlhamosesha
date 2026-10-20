@@ -1,8 +1,8 @@
-# Decon — Visual Reverse Engineering
+# RevVisual — Visual Reverse Engineering
 
 **Reverse-engineer any poster into editable layers.**
 
-Upload a poster, sports graphic, banner, flyer, infographic, ad, magazine page, diagram or artwork. Decon breaks it down into its text, objects, logos, background layers, colour system and layout grid, then rebuilds it as a fully editable, layered design you can export again.
+Upload a poster, sports graphic, banner, flyer, infographic, ad, magazine page, diagram or artwork. RevVisual breaks it down into its text, objects, logos, background layers, colour system and layout grid, then rebuilds it as a fully editable, layered design you can export again.
 
 ![stack](https://img.shields.io/badge/Next.js-15-black) ![ts](https://img.shields.io/badge/TypeScript-strict-3178c6) ![tailwind](https://img.shields.io/badge/Tailwind-shadcn%2Fui-38bdf8) ![prisma](https://img.shields.io/badge/Prisma-PostgreSQL-2d3748)
 
@@ -25,7 +25,7 @@ You don't need an API key or a database. Everything runs on your device, and pro
 
 ### Renaming the product
 
-The name, tagline, description and legal details live in `src/lib/brand.ts`. The logo is a single vector path in `src/lib/brand-mark.ts`, used by the in-app logo, the share image and the home-screen icon; `public/icon.svg` (browser tab) and `public/brand/decon-mark*.svg` (downloadable black and white versions) embed the same path. Browser storage keys intentionally keep their original names so saved projects survive a rename.
+The name, tagline, description and legal details live in `src/lib/brand.ts`. The logo is a single vector path in `src/lib/brand-mark.ts`, used by the in-app logo, the share image and the home-screen icon; `public/icon.svg` (browser tab) and `public/brand/revvisual-mark*.svg` (downloadable black and white versions) embed the same path. Browser storage keys intentionally keep their original names so saved projects survive a rename.
 
 ### Optional configuration (`.env`, see `.env.example`)
 

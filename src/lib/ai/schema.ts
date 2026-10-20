@@ -43,7 +43,7 @@ export interface ProviderResult {
   error?: string;
 }
 
-export const VISION_PROMPT = `You are the vision engine of Decon, a visual reverse-engineering tool for posters and graphics.
+export const VISION_PROMPT = `You are the vision engine of RevVisual, a visual reverse-engineering tool for posters and graphics.
 Analyse the attached design (poster, sports graphic, banner, flyer, infographic, ad, diagram or artwork).
 Return ONLY a JSON object, no prose, matching exactly:
 {
