@@ -12,24 +12,111 @@ export interface OcrLine {
 
 type Progress = (p: number, note?: string) => void;
 
-/** Runs Tesseract (WASM) on the image and on its inverted copy, merging lines. */
-export async function runOcr(img: HTMLImageElement, onProgress: Progress, invertPass = true): Promise<OcrLine[]> {
+/**
+ * Local-contrast rendering for OCR: every pixel is compared with the average
+ * brightness of its own neighbourhood, and anything clearly darker (polarity 1)
+ * or lighter (polarity -1) becomes black ink on white. Unlike a single global
+ * threshold this keeps text on coloured buttons, gradients and photos; one
+ * polarity per pass keeps letters solid instead of outlined.
+ */
+function localContrast(src: HTMLCanvasElement, polarity: 1 | -1) {
+  const W = src.width;
+  const H = src.height;
+  const radius = Math.max(8, Math.round(Math.max(W, H) / 60));
+  const gray = makeCanvas(W, H);
+  // A light blur first, so film grain and JPEG noise don't register as ink.
+  gray.ctx.filter = `grayscale(1) blur(${Math.max(1, Math.round(Math.max(W, H) / 1400))}px)`;
+  gray.ctx.drawImage(src, 0, 0);
+  const blur = makeCanvas(W, H);
+  blur.ctx.filter = `grayscale(1) blur(${radius}px)`;
+  blur.ctx.drawImage(src, 0, 0);
+  const g = gray.ctx.getImageData(0, 0, W, H);
+  const m = blur.ctx.getImageData(0, 0, W, H).data;
+  const d = g.data;
+  const ink = new Uint8Array(W * H);
+  for (let p = 0, i = 0; p < ink.length; p++, i += 4) ink[p] = polarity * (m[i] - d[i]) > 28 ? 1 : 0;
+  dropNonGlyphs(ink, W, H);
+  for (let p = 0, i = 0; p < ink.length; p++, i += 4) {
+    d[i] = d[i + 1] = d[i + 2] = ink[p] ? 0 : 255;
+    d[i + 3] = 255;
+  }
+  const out = makeCanvas(W, H);
+  out.ctx.putImageData(g, 0, 0);
+  return out.canvas;
+}
+
+/**
+ * Erases ink blobs that can't be letters: the outlines of buttons and panels
+ * (long and thin), rules, and photo-sized blobs. Tesseract treats a framed
+ * area as a picture or table and skips the text inside it, which is why CTA
+ * button labels used to go missing.
+ */
+function dropNonGlyphs(ink: Uint8Array, W: number, H: number) {
+  const seen = new Uint8Array(W * H);
+  const stack = new Int32Array(W * H);
+  const members: number[] = [];
+  const comps: { x0: number; y0: number; x1: number; y1: number; members: number[] }[] = [];
+  for (let start = 0; start < ink.length; start++) {
+    if (!ink[start] || seen[start]) continue;
+    let top = 0;
+    stack[top++] = start;
+    seen[start] = 1;
+    members.length = 0;
+    let x0 = W, y0 = H, x1 = 0, y1 = 0;
+    while (top) {
+      const p = stack[--top];
+      members.push(p);
+      const x = p % W;
+      const y = (p - x) / W;
+      if (x < x0) x0 = x;
+      if (x > x1) x1 = x;
+      if (y < y0) y0 = y;
+      if (y > y1) y1 = y;
+      if (x > 0 && ink[p - 1] && !seen[p - 1]) (seen[p - 1] = 1), (stack[top++] = p - 1);
+      if (x < W - 1 && ink[p + 1] && !seen[p + 1]) (seen[p + 1] = 1), (stack[top++] = p + 1);
+      if (y > 0 && ink[p - W] && !seen[p - W]) (seen[p - W] = 1), (stack[top++] = p - W);
+      if (y < H - 1 && ink[p + W] && !seen[p + W]) (seen[p + W] = 1), (stack[top++] = p + W);
+    }
+    const w = x1 - x0 + 1;
+    const h = y1 - y0 + 1;
+    const frame = (w > 3 * h || h > 3 * w) && Math.max(w, h) > Math.max(W, H) * 0.06;
+    const huge = h > H * 0.25 || w > W * 0.3;
+    // A hollow outline covers little of its own bounding box.
+    const ring = Math.min(w, h) > Math.max(W, H) * 0.03 && members.length < w * h * 0.12;
+    if (frame || huge || ring) for (const p of members) ink[p] = 0;
+    else comps.push({ x0, y0, x1, y1, members: [...members] });
+  }
+  // A blob with several others inside its box is a panel or button around
+  // text, not a letter (letters have at most two counters).
+  const big = comps.filter((c) => Math.min(c.x1 - c.x0, c.y1 - c.y0) > Math.max(W, H) * 0.015);
+  for (const c of big) {
+    let inside = 0;
+    for (const o of comps)
+      if (o !== c && o.x0 > c.x0 && o.x1 < c.x1 && o.y0 > c.y0 && o.y1 < c.y1 && ++inside >= 3) break;
+    if (inside >= 3) for (const p of c.members) ink[p] = 0;
+  }
+}
+
+/** Runs Tesseract (WASM) on the image and on a local-contrast copy, merging lines. */
+export async function runOcr(img: HTMLImageElement, onProgress: Progress, extraPass = true): Promise<OcrLine[]> {
   const { createWorker, PSM } = await import("tesseract.js");
   const W = img.naturalWidth;
   const H = img.naturalHeight;
-  // Tesseract prefers ~1600–2400px text-heavy images.
-  const scale = Math.min(2.5, Math.max(1, 1800 / Math.max(W, H)));
+  // Enlarge so small print has enough pixels (Tesseract wants ~20px+ letters).
+  const scale = Math.min(3, Math.max(1, 2600 / Math.max(W, H)));
   const { canvas, ctx } = makeCanvas(W * scale, H * scale);
   ctx.imageSmoothingQuality = "high";
   ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-  const passes: { name: string; canvas: HTMLCanvasElement }[] = [{ name: "positive", canvas }];
-  if (invertPass) {
-    const inv = makeCanvas(canvas.width, canvas.height);
-    inv.ctx.filter = "grayscale(1) invert(1) contrast(1.4)";
-    inv.ctx.drawImage(canvas, 0, 0);
-    passes.push({ name: "inverted", canvas: inv.canvas });
-  }
+  // Full-page layout analysis keeps text inside buttons and panels, which
+  // sparse-text mode tends to drop; the sparse pass then picks up scattered
+  // lines that layout analysis merged away or skipped.
+  const passes: { name: string; canvas: HTMLCanvasElement; psm: string }[] = [{ name: "colour", canvas, psm: PSM.SPARSE_TEXT }];
+  if (extraPass)
+    passes.push(
+      { name: "dark text", canvas: localContrast(canvas, 1), psm: PSM.SPARSE_TEXT },
+      { name: "light text", canvas: localContrast(canvas, -1), psm: PSM.SPARSE_TEXT },
+    );
 
   let pass = 0;
   const worker = await createWorker("eng", 1, {
@@ -43,14 +130,12 @@ export async function runOcr(img: HTMLImageElement, onProgress: Progress, invert
     },
   });
 
-  // Sparse-text segmentation suits posters: scattered lines at many sizes.
-  await worker.setParameters({ tessedit_pageseg_mode: PSM.SPARSE_TEXT });
-
   const lines: OcrLine[] = [];
   try {
     for (pass = 0; pass < passes.length; pass++) {
+      await worker.setParameters({ tessedit_pageseg_mode: passes[pass].psm as never });
       const { data } = await worker.recognize(passes[pass].canvas);
-      for (const l of data.lines ?? []) {
+      for (const l of (data.lines ?? []).flatMap(splitLine)) {
         const text = l.text.replace(/\s+/g, " ").trim();
         const alnum = (text.match(/[\p{L}\p{N}]/gu) ?? []).length;
         if (text.length < 2 || alnum / text.length < 0.55 || l.confidence < 50) continue;
@@ -79,6 +164,51 @@ export async function runOcr(img: HTMLImageElement, onProgress: Progress, invert
   }
   onProgress(1);
   return lines;
+}
+
+type Bbox = { x0: number; y0: number; x1: number; y1: number };
+type RawLine = { text: string; confidence: number; bbox: Bbox; words?: { text: string; confidence: number; bbox: Bbox }[] };
+
+/**
+ * Splits a Tesseract line at wide gaps (two items sharing a baseline, or an
+ * icon next to a headline) and trims symbol-only words from the ends, so a
+ * star or badge beside the text isn't swallowed into the text box.
+ */
+function splitLine(l: RawLine): RawLine[] {
+  let words = (l.words ?? []).filter((w) => w.text.trim()).sort((a, b) => a.bbox.x0 - b.bbox.x0);
+  if (!words.length) return [l];
+  // Drop words that sit off the line's baseline (stray marks Tesseract attached).
+  const mid = (w: (typeof words)[number]) => (w.bbox.y0 + w.bbox.y1) / 2;
+  const medianOf = (v: number[]) => [...v].sort((a, b) => a - b)[v.length >> 1];
+  const cy = medianOf(words.map(mid));
+  const wh = medianOf(words.map((w) => w.bbox.y1 - w.bbox.y0));
+  words = words.filter((w) => Math.abs(mid(w) - cy) < wh * 0.5 && w.bbox.y1 - w.bbox.y0 < wh * 1.8);
+  if (!words.length) return [];
+  const lineH = wh;
+  const groups: (typeof words)[] = [[words[0]]];
+  for (let i = 1; i < words.length; i++) {
+    if (words[i].bbox.x0 - words[i - 1].bbox.x1 > lineH * 1.2) groups.push([]);
+    groups[groups.length - 1].push(words[i]);
+  }
+  const hasAlnum = (t: string) => /[\p{L}\p{N}]/u.test(t);
+  return groups.flatMap((g) => {
+    while (g.length && !hasAlnum(g[0].text)) g.shift();
+    while (g.length && !hasAlnum(g[g.length - 1].text)) g.pop();
+    if (!g.length) return [];
+    return [
+      {
+        text: g.map((w) => w.text).join(" "),
+        confidence: g.reduce((sum, w) => sum + w.confidence, 0) / g.length,
+        bbox: {
+          x0: Math.min(...g.map((w) => w.bbox.x0)),
+          // Word boxes can balloon onto nearby marks; the line box is tighter vertically.
+          y0: Math.max(l.bbox.y0, Math.min(...g.map((w) => w.bbox.y0))),
+          x1: Math.max(...g.map((w) => w.bbox.x1)),
+          y1: Math.min(l.bbox.y1, Math.max(...g.map((w) => w.bbox.y1))),
+        },
+      },
+    ];
+  });
 }
 
 const MONTHS = /\b(jan(uary)?|feb(ruary)?|mar(ch)?|apr(il)?|may|june?|july?|aug(ust)?|sept?(ember)?|oct(ober)?|nov(ember)?|dec(ember)?|mon(day)?|tue(sday)?|wed(nesday)?|thu(rsday)?|fri(day)?|sat(urday)?|sun(day)?)\b/i;
@@ -117,6 +247,7 @@ export function buildTextElements(lines: OcrLine[], r: Raster, imgW: number, ref
     const bgRef = kmeans(border.length ? border : pixels, 1, 4)[0]?.center ?? [0, 0, 0];
     const ink = [...clusters].sort((a, b) => colorDistance(b.center, bgRef) - colorDistance(a.center, bgRef))[0];
     const inkRatio = ink ? ink.count / Math.max(1, pixels.length) : 0.3;
+    const color = coreInk(pixels, bgRef) ?? ink?.center ?? ([255, 255, 255] as RGB);
     const letters = l.text.replace(/\s/g, "");
     const upper = letters === letters.toUpperCase() && /[A-Z]/.test(letters);
     const descender = /[gjpqy,]/.test(l.text);
@@ -124,8 +255,8 @@ export function buildTextElements(lines: OcrLine[], r: Raster, imgW: number, ref
     const sizePx = l.box.height / emFactor;
     const charW = l.box.width / Math.max(1, l.text.length);
     const widthRatio = charW / sizePx;
-    const contrast = contrastRatio(ink?.center ?? [255, 255, 255], bgRef);
-    return { l, inkRatio, upper, sizePx, widthRatio, color: ink?.center ?? ([255, 255, 255] as RGB), contrast, bgRef };
+    const contrast = contrastRatio(color, bgRef);
+    return { l, inkRatio, upper, sizePx, widthRatio, color, contrast, bgRef };
   });
 
   const maxSize = refMaxSize ?? Math.max(1, ...measured.map((m) => m.sizePx));
@@ -186,6 +317,25 @@ export function buildTextElements(lines: OcrLine[], r: Raster, imgW: number, ref
       source: "ocr",
     } satisfies TextElement;
   });
+}
+
+/**
+ * Text colour from the centre of the strokes: the pixels that differ most from
+ * the background, ignoring the anti-aliased edges that blend the two (which
+ * pull an average towards the background on thin or small text).
+ */
+function coreInk(pixels: RGB[], bg: RGB): RGB | null {
+  if (pixels.length < 8) return null;
+  const dist = pixels.map((p) => colorDistance(p, bg));
+  const sorted = [...dist].sort((a, b) => a - b);
+  const far = sorted[Math.floor(sorted.length * 0.97)];
+  if (far < 30) return null;
+  const core = pixels.filter((_, i) => dist[i] >= far * 0.8);
+  const med = (k: number) => {
+    const v = core.map((p) => p[k]).sort((a, b) => a - b);
+    return v[Math.floor(v.length / 2)];
+  };
+  return [med(0), med(1), med(2)];
 }
 
 function ringColors(r: Raster, b: Box): RGB[] {

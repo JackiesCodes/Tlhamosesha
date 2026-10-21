@@ -29,15 +29,24 @@ export function classifyDesign(f: Features): DesignCategory[] {
     "Sports Poster":
       2.2 * has(/\b(vs|v\.|match|fc|cup|league|final|goal|derby|champion|game ?day|season|tournament|united|rugby|soccer|football|basketball|cricket|kick ?off|full ?time|ft)\b/g, all) +
       1.5 * scores + 1.1 * people + 0.4 * logos,
+    // Generic calls to action ("shop now", "today", "limited") appear on every
+    // kind of ad, so only promotion-specific wording counts here.
     "Marketing Banner":
-      1.4 * has(/\b(sale|offer|discount|off|deal|shop|join|sign up|subscribe|free|limited|today|now|learn more)\b/g, all) +
-      (wide ? 2 : 0) + 0.3 * logos,
+      1.4 * has(/\b(sale|offer|discount|off|deals?|clearance|save|join|sign up|subscribe|learn more|stocks last|black friday)\b/g, all) +
+      1.6 * has(/\d+\s?%/g, all) + (wide ? 2 : 0) + 0.3 * logos,
+    // Prices and "order/buy" buttons show up on sales and events too, so they
+    // count for little; product wording and a product shot carry the weight.
     "Product Advertisement":
-      1.6 * has(/\b(new|buy|order|price|only|launch|introducing|available|\$|r\d|€|£)\b/g, all) + 1.4 * products + (people ? 0 : 0.5),
+      1.6 * has(/\b(new|launch|introducing|available|edition|drop|flavou?r|made with|meet the|formula|collection)\b/g, all) +
+      0.5 * has(/[$€£]\s?\d|\br\s?\d/g, all) + 1.4 * products + (people ? 0 : 0.5),
     "Event Flyer":
-      1.3 * has(/\b(live|concert|festival|tickets?|venue|doors|party|night|tour|presents|rsvp|register|summit|conference)\b/g, all) +
+      1.3 *
+        has(
+          /\b(live|concert|festival|tickets?|venue|doors|party|night|tour|presents|rsvp|register|summit|conference|talks?|workshops?|music|entry|open house|lineup|speakers?|exhibition|gig)\b/g,
+          all,
+        ) +
       1.2 * dates + (tall ? 0.6 : 0),
-    "Social Media Graphic": (square ? 2.2 : 0) + (f.aspect > 0.75 && f.aspect < 0.85 ? 1.2 : 0) + has(/[#@]\w+/g, all),
+    "Social Media Graphic": (square ? 1.2 : 0) + (f.aspect > 0.75 && f.aspect < 0.85 ? 1.2 : 0) + has(/[#@]\w+/g, all),
     Infographic: 0.9 * stats + (lines > 10 ? 1.4 : 0) + (f.edgeDensity > 0.12 ? 0.6 : 0),
     "Magazine Page": (lines > 14 ? 2 : lines > 9 ? 1 : 0) + (tall ? 0.8 : 0) + 0.4 * people,
     "Technical Diagram": (f.colorfulness < 18 ? 1.2 : 0) + (f.edgeDensity > 0.14 ? 1.2 : 0) + 0.8 * has(/\b(fig|diagram|input|output|api|server|flow|step|module)\b/g, all),

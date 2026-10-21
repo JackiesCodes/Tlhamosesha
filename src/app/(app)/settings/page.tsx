@@ -132,8 +132,8 @@ export default function SettingsPage() {
         <CardContent className="space-y-6">
           <ToggleRow label="Read text (OCR)" hint="Detect every line of text and estimate its typography." checked={settings.ocr} onChange={(v) => setSettings({ ocr: v })} />
           <ToggleRow
-            label="Second pass for light text"
-            hint="Finds light text on dark backgrounds more reliably. Takes a little longer."
+            label="Extra passes for hard-to-read text"
+            hint="Reads text on buttons, coloured panels and photos more reliably. Takes a few seconds longer."
             checked={settings.ocrInvertPass}
             onChange={(v) => setSettings({ ocrInvertPass: v })}
           />

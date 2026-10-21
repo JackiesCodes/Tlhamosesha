@@ -15,25 +15,30 @@ export function proposeObjects(
   imgW: number,
   imgH: number,
   maxObjects = 14,
+  detail?: Raster,
 ): DetectedObject[] {
   const s = 1 / r.scale;
   const textBoxes = texts.map((t) => scaleBox(t.box, s));
   const rasterArea = r.width * r.height;
 
   // Drop regions that are mostly text, then merge fragments.
-  const nonText = seg.regions.filter((g) => {
-    const covered = textBoxes.reduce((acc, tb) => Math.max(acc, boxCoverage(g.box, tb)), 0);
-    return covered < 0.55;
-  });
+  const nonText = seg.regions.filter((g) => textShare(g.box, textBoxes) < 0.55);
   const merged = mergeNearby(nonText, Math.max(2, Math.round(Math.min(r.width, r.height) * 0.012)), rasterArea);
 
   const allText = texts.map((t) => t.text).join(" ");
   const sporty = SPORT_HINT.test(allText);
   const commercial = AD_HINT.test(allText);
   const candidates = merged
+    // Merging can rebuild a block of several text lines; drop those too.
+    .filter((g) => textShare(g.box, textBoxes) < 0.55)
+    // Out-of-focus blobs in photo backgrounds have no crisp edges anywhere.
+    .filter((g) => edgeSharpness(r, g.box) >= 18)
     .filter((g) => {
       const a = (g.box.width * g.box.height) / rasterArea;
-      return a > 0.004 && a < 0.92 && g.box.width > 4 && g.box.height > 4;
+      const aspect = g.box.height / g.box.width;
+      // Small solid shapes (icons, badges) are kept even below the usual floor.
+      const smallMark = a > 0.0015 && aspect > 0.6 && aspect < 1.6 && g.fill > 0.3;
+      return (a > 0.004 || smallMark) && a < 0.92 && g.box.width > 4 && g.box.height > 4;
     })
     .sort((a, b) => b.area - a.area)
     .slice(0, maxObjects);
@@ -50,6 +55,9 @@ export function proposeObjects(
 
     const compact = aspect > 0.6 && aspect < 1.6;
     const hasText = textBoxes.some((tb) => boxCoverage(tb, g.box) > 0.6);
+    // Icons are flat single-colour glyphs; logos and badges usually combine
+    // colours (a fill plus lettering or an outline).
+    const flat = a < 0.06 && compact && singleColour(detail ?? r, scaleBox(g.box, r.scale), seg.bgColors);
 
     let kind: ObjectKind = "object";
     let label = "Object";
@@ -63,13 +71,17 @@ export function proposeObjects(
       label = cy > 0.8 && edgeBand ? "Sponsor logo" : "Call-to-action button";
       if (label === "Sponsor logo") kind = "logo";
       conf = 0.66;
+    } else if (flat) {
+      kind = "icon";
+      label = "Icon";
+      conf = 0.6;
     } else if (a < 0.06 && edgeBand && aspect > 0.3 && aspect < 3) {
       kind = "logo";
       label = cy > 0.8 ? "Sponsor logo" : sporty ? "Team badge" : "Logo";
       conf = 0.58 + (g.fill > 0.4 ? 0.1 : 0);
     } else if (a < 0.05 && compact && g.fill > 0.55) {
-      kind = sporty || sat > 30 ? "logo" : "icon";
-      label = sporty ? "Team badge" : kind === "logo" ? "Emblem" : "Icon";
+      kind = "logo";
+      label = sporty ? "Team badge" : "Emblem";
       conf = 0.6;
     } else if (a < 0.012 && aspect > 0.5 && aspect < 2 && g.fill > 0.25) {
       kind = "icon";
@@ -123,6 +135,63 @@ export function proposeObjects(
     }
   }
   return out;
+}
+
+/** 98th-percentile luminance gradient inside a raster box: low means only soft, blurred edges. */
+function edgeSharpness(r: Raster, b: Box): number {
+  const lum = (i: number) => 0.3 * r.data[i] + 0.59 * r.data[i + 1] + 0.11 * r.data[i + 2];
+  const g: number[] = [];
+  const x0 = Math.max(1, Math.floor(b.x));
+  const y0 = Math.max(1, Math.floor(b.y));
+  const x1 = Math.min(r.width - 1, Math.ceil(b.x + b.width));
+  const y1 = Math.min(r.height - 1, Math.ceil(b.y + b.height));
+  for (let y = y0; y < y1; y++)
+    for (let x = x0; x < x1; x++) {
+      const i = (y * r.width + x) * 4;
+      g.push(Math.abs(lum(i + 4) - lum(i - 4)) + Math.abs(lum(i + r.width * 4) - lum(i - r.width * 4)));
+    }
+  if (!g.length) return 0;
+  g.sort((a, b) => a - b);
+  return g[Math.floor(g.length * 0.98)];
+}
+
+/** Share of a box covered by the union of the text boxes (grid estimate). */
+function textShare(b: Box, textBoxes: Box[]): number {
+  const near = textBoxes.filter((t) => t.x < b.x + b.width && t.x + t.width > b.x && t.y < b.y + b.height && t.y + t.height > b.y);
+  if (!near.length) return 0;
+  const n = 16;
+  let hit = 0;
+  for (let i = 0; i < n; i++)
+    for (let j = 0; j < n; j++) {
+      const x = b.x + ((i + 0.5) / n) * b.width;
+      const y = b.y + ((j + 0.5) / n) * b.height;
+      // Line gaps inside a text block count as text.
+      if (near.some((t) => x >= t.x && x <= t.x + t.width && y >= t.y - t.height * 0.6 && y <= t.y + t.height * 1.6)) hit++;
+    }
+  return hit / (n * n);
+}
+
+/** True when the clearly-foreground pixels of a box (source px) are essentially one colour. */
+function singleColour(r: Raster, box: Box, bgColors: RGB[]): boolean {
+  const s = 1 / r.scale;
+  const fg: RGB[] = [];
+  const x0 = Math.max(0, Math.floor(box.x * s));
+  const y0 = Math.max(0, Math.floor(box.y * s));
+  const x1 = Math.min(r.width, Math.ceil((box.x + box.width) * s));
+  const y1 = Math.min(r.height, Math.ceil((box.y + box.height) * s));
+  const step = Math.max(1, Math.round(Math.sqrt(((x1 - x0) * (y1 - y0)) / 4000)));
+  for (let y = y0; y < y1; y += step)
+    for (let x = x0; x < x1; x += step) {
+      const i = (y * r.width + x) * 4;
+      const c: RGB = [r.data[i], r.data[i + 1], r.data[i + 2]];
+      let d = Infinity;
+      for (const bg of bgColors) d = Math.min(d, colorDistance(c, bg));
+      if (d > 80) fg.push(c);
+    }
+  if (fg.length < 20) return false;
+  const med = (k: number) => fg.map((p) => p[k]).sort((a, b) => a - b)[fg.length >> 1];
+  const dom: RGB = [med(0), med(1), med(2)];
+  return fg.filter((c) => colorDistance(c, dom) < 50).length / fg.length > 0.85;
 }
 
 function findFace(r: Raster, b: Box): Box | null {

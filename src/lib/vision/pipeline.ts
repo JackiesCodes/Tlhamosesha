@@ -83,7 +83,7 @@ export async function runPipeline(src: string, opt: PipelineOptions): Promise<Pi
   thumbC.ctx.drawImage(img, 0, 0, thumbC.canvas.width, thumbC.canvas.height);
   const thumbnail = thumbC.canvas.toDataURL("image/jpeg", 0.82);
   const seg0 = rasterize(img, 360); // segmentation raster
-  const mid = rasterize(img, 900); // text colour raster
+  const mid = rasterize(img, 1800); // text colour raster: fine enough that thin strokes keep their colour
   opt.onStep("load", "done", `${origW}×${origH}`);
   await nextFrame();
 
@@ -134,7 +134,7 @@ export async function runPipeline(src: string, opt: PipelineOptions): Promise<Pi
 
   // ---- objects
   opt.onStep("objects", "active");
-  let objects = proposeObjects(seg, seg0, texts, W, H, opt.maxObjects);
+  let objects = proposeObjects(seg, seg0, texts, W, H, opt.maxObjects, mid);
   engines.unshift({ id: "local", label: "On-device CV (saliency + components)", status: "ok", durationMs: ms(tSeg), note: `${objects.length} proposals` });
   let cloudCategories: DesignCategory[] | null = null;
   if (cloud?.merged) {
