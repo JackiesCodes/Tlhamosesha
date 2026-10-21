@@ -72,10 +72,11 @@ function dropNonGlyphs(ink: Uint8Array, W: number, H: number) {
       if (x > x1) x1 = x;
       if (y < y0) y0 = y;
       if (y > y1) y1 = y;
-      if (x > 0 && ink[p - 1] && !seen[p - 1]) (seen[p - 1] = 1), (stack[top++] = p - 1);
-      if (x < W - 1 && ink[p + 1] && !seen[p + 1]) (seen[p + 1] = 1), (stack[top++] = p + 1);
-      if (y > 0 && ink[p - W] && !seen[p - W]) (seen[p - W] = 1), (stack[top++] = p - W);
-      if (y < H - 1 && ink[p + W] && !seen[p + W]) (seen[p + W] = 1), (stack[top++] = p + W);
+      for (const q of [x > 0 ? p - 1 : -1, x < W - 1 ? p + 1 : -1, y > 0 ? p - W : -1, y < H - 1 ? p + W : -1]) {
+        if (q < 0 || !ink[q] || seen[q]) continue;
+        seen[q] = 1;
+        stack[top++] = q;
+      }
     }
     const w = x1 - x0 + 1;
     const h = y1 - y0 + 1;
