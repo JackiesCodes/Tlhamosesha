@@ -2,7 +2,7 @@
 import { colorDistance, contrastRatio, kmeans, toHex, type RGB } from "../color";
 import type { Box, TextElement, TextRole } from "../types";
 import { uid } from "../utils";
-import { boxIoU, makeCanvas, sampleColors, type Raster } from "./raster";
+import { boxIoU, makeCanvas, release, sampleColors, type Raster } from "./raster";
 
 export interface OcrLine {
   text: string;
@@ -32,6 +32,7 @@ function localContrast(src: HTMLCanvasElement, polarity: 1 | -1) {
   blur.ctx.drawImage(src, 0, 0);
   const g = gray.ctx.getImageData(0, 0, W, H);
   const m = blur.ctx.getImageData(0, 0, W, H).data;
+  release(gray.canvas, blur.canvas);
   const d = g.data;
   const ink = new Uint8Array(W * H);
   for (let p = 0, i = 0; p < ink.length; p++, i += 4) ink[p] = polarity * (m[i] - d[i]) > 28 ? 1 : 0;
@@ -99,36 +100,56 @@ function dropNonGlyphs(ink: Uint8Array, W: number, H: number) {
 }
 
 type OcrWorker = Awaited<ReturnType<(typeof import("tesseract.js"))["createWorker"]>>;
-type OcrMessage = { status: string; progress: number };
-let shared: { worker: Promise<OcrWorker>; users: number; idle?: ReturnType<typeof setTimeout> } | null = null;
+type OcrMessage = { status: string; progress: number; job: number };
+let shared: { workers: Promise<OcrWorker[]>; users: number; idle?: ReturnType<typeof setTimeout> } | null = null;
 let ocrLog: ((m: OcrMessage) => void) | null = null;
+/** Which pass each pool worker is on, for progress reporting. */
+const jobOf: number[] = [];
 
 /**
- * One OCR engine for every read, started on first use and shut down after a
- * short idle spell. Starting Tesseract costs time and memory, and a video
- * breakdown reads many frames in a row.
+ * A pass normally takes a second or two. Some images (an empty frame of pure
+ * film grain, say) make Tesseract read thousands of specks for minutes; past
+ * this limit the pass is dropped and its worker replaced.
  */
-async function withOcr<T>(fn: (worker: OcrWorker) => Promise<T>): Promise<T> {
+const PASS_LIMIT_MS = 20000;
+
+/** Stops every OCR worker now; the next read starts a fresh pool. */
+function resetOcr() {
+  const s = shared;
+  shared = null;
+  if (!s) return;
+  clearTimeout(s.idle);
+  s.workers.then((ws) => ws.forEach((w) => w.terminate().catch(() => {}))).catch(() => {});
+}
+
+/** Workers in the pool: one per spare core, up to one per OCR pass. */
+const poolSize = () => Math.max(1, Math.min(2, (navigator.hardwareConcurrency || 2) - 1));
+
+/**
+ * A small pool of OCR engines shared by every read, started on first use and
+ * shut down after a short idle spell. Starting Tesseract costs time and
+ * memory, and a video breakdown reads many frames in a row.
+ */
+async function withOcr<T>(fn: (workers: OcrWorker[]) => Promise<T>): Promise<T> {
   if (!shared) {
     const { createWorker } = await import("tesseract.js");
-    shared = {
-      users: 0,
-      worker: createWorker("eng", 1, {
+    const make = (w: number) =>
+      createWorker("eng", 1, {
         // Self-hosted assets (scripts/copy-ocr-assets.mjs); absolute because the worker boots from a blob URL.
         workerPath: `${location.origin}/ocr/worker.min.js`,
         corePath: `${location.origin}/ocr`,
         langPath: `${location.origin}/ocr/lang`,
-        logger: (m: OcrMessage) => ocrLog?.(m),
-      }),
-    };
+        logger: (m: { status: string; progress: number }) => ocrLog?.({ ...m, job: jobOf[w] ?? 0 }),
+      });
+    shared = { users: 0, workers: Promise.all(Array.from({ length: poolSize() }, (_, w) => make(w))) };
   }
   const s = shared;
   clearTimeout(s.idle);
   s.users++;
   try {
-    return await fn(await s.worker);
+    return await fn(await s.workers);
   } catch (e) {
-    // A worker that failed to start or crashed is not reused.
+    // Workers that failed to start or crashed are not reused.
     if (shared === s) shared = null;
     throw e;
   } finally {
@@ -136,7 +157,7 @@ async function withOcr<T>(fn: (worker: OcrWorker) => Promise<T>): Promise<T> {
     if (!s.users)
       s.idle = setTimeout(() => {
         if (shared === s) shared = null;
-        s.worker.then((w) => w.terminate()).catch(() => {});
+        s.workers.then((ws) => ws.forEach((w) => w.terminate().catch(() => {}))).catch(() => {});
       }, 15000);
   }
 }
@@ -152,9 +173,8 @@ export async function runOcr(img: HTMLImageElement, onProgress: Progress, extraP
   ctx.imageSmoothingQuality = "high";
   ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-  // Full-page layout analysis keeps text inside buttons and panels, which
-  // sparse-text mode tends to drop; the sparse pass then picks up scattered
-  // lines that layout analysis merged away or skipped.
+  // The colour image, plus (optionally) local-contrast copies that read dark
+  // and light text with button and panel outlines erased.
   const passes: { name: string; canvas: HTMLCanvasElement; psm: string }[] = [{ name: "colour", canvas, psm: PSM.SPARSE_TEXT }];
   if (extraPass)
     passes.push(
@@ -162,41 +182,68 @@ export async function runOcr(img: HTMLImageElement, onProgress: Progress, extraP
       { name: "light text", canvas: localContrast(canvas, -1), psm: PSM.SPARSE_TEXT },
     );
 
-  let pass = 0;
   const lines: OcrLine[] = [];
+  const progress = passes.map(() => 0);
   ocrLog = (m) => {
-    if (m.status === "recognizing text") onProgress((pass + m.progress) / passes.length, `OCR ${passes[pass]?.name} pass`);
-    else onProgress(pass / passes.length, m.status);
+    if (m.status !== "recognizing text") return;
+    progress[m.job] = m.progress;
+    onProgress(progress.reduce((a, b) => a + b, 0) / passes.length, "Reading text");
   };
-  await withOcr(async (worker) => {
-    for (pass = 0; pass < passes.length; pass++) {
-      await worker.setParameters({ tessedit_pageseg_mode: passes[pass].psm as never });
-      const { data } = await worker.recognize(passes[pass].canvas);
-      for (const l of (data.lines ?? []).flatMap(splitLine)) {
-        const text = l.text.replace(/\s+/g, " ").trim();
-        const alnum = (text.match(/[\p{L}\p{N}]/gu) ?? []).length;
-        if (text.length < 2 || alnum / text.length < 0.55 || l.confidence < 50) continue;
-        const box = {
-          x: l.bbox.x0 / scale,
-          y: l.bbox.y0 / scale,
-          width: (l.bbox.x1 - l.bbox.x0) / scale,
-          height: (l.bbox.y1 - l.bbox.y0) / scale,
-        };
-        if (box.height < 6 || box.width < 8) continue;
-        // Reject implausible geometry (OCR hallucinations over photos/graphics).
-        const charAspect = box.width / Math.max(1, text.length) / box.height;
-        if (box.height > H * 0.3 || charAspect < 0.18 || charAspect > 2.2) continue;
-        // Same line seen twice (other pass, or fragments of a longer line)?
-        const clashes = lines.filter((o) => boxIoU(o.box, box) > 0.3 || sameLine(o.box, box));
-        const beats = (o: OcrLine) =>
-          text.length > o.text.length * 1.2 || (text.length >= o.text.length * 0.8 && l.confidence > o.confidence);
-        if (clashes.every(beats)) {
-          for (const c of clashes) lines.splice(lines.indexOf(c), 1);
-          lines.push({ text, confidence: l.confidence, box });
+  // Passes run side by side, one per OCR worker, then merge in a fixed order.
+  const results: Awaited<ReturnType<OcrWorker["recognize"]>>["data"][] = [];
+  let stuck = false;
+  await withOcr(async (workers) => {
+    let next = 0;
+    await Promise.all(
+      workers.map(async (worker, w) => {
+        while (next < passes.length) {
+          const k = next++;
+          jobOf[w] = k;
+          await worker.setParameters({ tessedit_pageseg_mode: passes[k].psm as never });
+          const data = await Promise.race([
+            worker.recognize(passes[k].canvas).then((r) => r.data),
+            new Promise<null>((resolve) => setTimeout(() => resolve(null), PASS_LIMIT_MS)),
+          ]);
+          if (!data) {
+            // Stuck on noise; this worker is replaced after the read.
+            stuck = true;
+            return;
+          }
+          results[k] = data;
         }
+      }),
+    );
+  }).finally(() => {
+    ocrLog = null;
+    release(canvas, ...passes.map((p) => p.canvas));
+  });
+  if (stuck) resetOcr();
+  for (const data of results) {
+    if (!data) continue;
+    for (const l of (data.lines ?? []).flatMap(splitLine)) {
+      const text = l.text.replace(/\s+/g, " ").trim();
+      const alnum = (text.match(/[\p{L}\p{N}]/gu) ?? []).length;
+      if (text.length < 2 || alnum / text.length < 0.55 || l.confidence < 50) continue;
+      const box = {
+        x: l.bbox.x0 / scale,
+        y: l.bbox.y0 / scale,
+        width: (l.bbox.x1 - l.bbox.x0) / scale,
+        height: (l.bbox.y1 - l.bbox.y0) / scale,
+      };
+      if (box.height < 6 || box.width < 8) continue;
+      // Reject implausible geometry (OCR hallucinations over photos/graphics).
+      const charAspect = box.width / Math.max(1, text.length) / box.height;
+      if (box.height > H * 0.3 || charAspect < 0.18 || charAspect > 2.2) continue;
+      // Same line seen twice (other pass, or fragments of a longer line)?
+      const clashes = lines.filter((o) => boxIoU(o.box, box) > 0.3 || sameLine(o.box, box));
+      const beats = (o: OcrLine) =>
+        text.length > o.text.length * 1.2 || (text.length >= o.text.length * 0.8 && l.confidence > o.confidence);
+      if (clashes.every(beats)) {
+        for (const c of clashes) lines.splice(lines.indexOf(c), 1);
+        lines.push({ text, confidence: l.confidence, box });
       }
     }
-  }).finally(() => (ocrLog = null));
+  }
   onProgress(1);
   return lines;
 }
@@ -405,7 +452,7 @@ export async function readRegions(img: HTMLImageElement, boxes: Box[]): Promise<
   if (!boxes.length) return [];
   const { PSM } = await import("tesseract.js");
   const out: (OcrLine | null)[] = [];
-  await withOcr(async (worker) => {
+  await withOcr(async ([worker]) => {
     await worker.setParameters({ tessedit_pageseg_mode: PSM.SINGLE_LINE });
     for (const b of boxes) {
       const k = Math.min(4, Math.max(1, 140 / b.height));
@@ -416,6 +463,7 @@ export async function readRegions(img: HTMLImageElement, boxes: Box[]): Promise<
       ctx.filter = "grayscale(1) contrast(1.6)";
       ctx.drawImage(img, b.x, b.y, b.width, b.height, pad, pad, b.width * k, b.height * k);
       const { data } = await worker.recognize(canvas);
+      release(canvas);
       const words = (data.words ?? []).filter((w) => w.confidence > 60 && /[\p{L}\p{N}]{2,}/u.test(w.text));
       if (!words.length) {
         out.push(null);

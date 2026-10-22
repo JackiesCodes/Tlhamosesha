@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { useApp } from "@/lib/store/app";
-import { analyzeVideo, type VideoBreakdown } from "@/lib/video/analyze";
+import { analyzeVideo, VIDEO_STEPS, type VideoBreakdown } from "@/lib/video/analyze";
 
 const fmt = (s: number) => `${Math.floor(s / 60)}:${(s % 60).toFixed(2).padStart(5, "0")}`;
 
@@ -36,7 +36,9 @@ export default function VideoLabPage() {
         ocrInvertPass: settings.ocrInvertPass,
         sensitivity: settings.sensitivity,
         maxObjects: settings.maxObjects,
-        onStatus: (stage, progress) => setStatus({ stage, progress }),
+        onStep: (id, st) => st === "active" && setStatus({ stage: VIDEO_STEPS.find((x) => x.id === id)!.label, progress: 0 }),
+        onProgress: (id, progress, note) =>
+          setStatus({ stage: `${VIDEO_STEPS.find((x) => x.id === id)!.label}${note ? ` · ${note}` : ""}`, progress }),
       });
       window.__videoBreakdown = out;
       setResult(out);
@@ -89,16 +91,16 @@ export default function VideoLabPage() {
                     <span className="text-xs text-muted-foreground">{sc.keyframes.length} keyframe{sc.keyframes.length > 1 ? "s" : ""}</span>
                   </div>
                   <ul className="space-y-1 text-sm">
-                    {sc.texts.map((t) => (
+                    {sc.analysis.texts.map((t) => (
                       <li key={t.id} className="flex gap-3">
-                        <span className="w-28 shrink-0 font-mono text-xs text-muted-foreground">{fmt(t.in)} – {fmt(t.out)}</span>
+                        <span className="w-28 shrink-0 font-mono text-xs text-muted-foreground">{fmt(sc.timing[t.id].in)} – {fmt(sc.timing[t.id].out)}</span>
                         <span className="min-w-0 break-words text-white">{t.text}</span>
                         <span className="text-xs text-muted-foreground">{t.role}</span>
                       </li>
                     ))}
-                    {sc.objects.map((o) => (
+                    {sc.analysis.objects.map((o) => (
                       <li key={o.id} className="flex gap-3">
-                        <span className="w-28 shrink-0 font-mono text-xs text-muted-foreground">{fmt(o.in)} – {fmt(o.out)}</span>
+                        <span className="w-28 shrink-0 font-mono text-xs text-muted-foreground">{fmt(sc.timing[o.id].in)} – {fmt(sc.timing[o.id].out)}</span>
                         <span className="text-muted-foreground">{o.label}</span>
                       </li>
                     ))}

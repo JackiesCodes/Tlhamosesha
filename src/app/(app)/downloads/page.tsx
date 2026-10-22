@@ -7,10 +7,11 @@ import { PageHeader } from "@/components/common/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { assetsZip, exportProject, type ExportFormat } from "@/lib/export";
+import { assetsZip, type ExportFormat, exportProject, videoLayersZip } from "@/lib/export";
 import { useApp } from "@/lib/store/app";
 import { allProjects, getProject } from "@/lib/store/db";
 import type { DetectedObject, Project } from "@/lib/types";
+import { syncedScenes } from "@/lib/video/project";
 import { downloadBlob, downloadDataUrl, formatBytes, timeAgo } from "@/lib/utils";
 
 export default function DownloadsPage() {
@@ -25,7 +26,7 @@ export default function DownloadsPage() {
   const assets = useMemo(
     () =>
       (projects ?? []).flatMap((p) =>
-        p.analysis.objects.filter((o) => o.cutout).map((o) => ({ o, project: p })),
+        (p.video ? syncedScenes(p) : [p]).flatMap((s) => s.analysis.objects.filter((o) => o.cutout).map((o) => ({ o, project: p }))),
       ),
     [projects],
   );
@@ -36,6 +37,7 @@ export default function DownloadsPage() {
     const p = await getProject(projectId);
     if (!p) return alert("That project no longer exists.");
     if (format === "assets-zip") downloadBlob(await assetsZip(p), `${p.name}-assets.zip`);
+    else if (format === "video-layers") downloadBlob(await videoLayersZip(p), `${p.name}-video-layers.zip`);
     else if (format !== "asset") {
       const { blob, fileName } = await exportProject(p, format as ExportFormat);
       downloadBlob(blob, fileName);

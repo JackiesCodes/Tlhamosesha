@@ -19,7 +19,7 @@ import { classifyDesign } from "./classify";
 import { scoreDna } from "./dna";
 import { analyzeLayout } from "./layout";
 import { cutout, proposeObjects } from "./objects";
-import { boxIoU, loadImage, makeCanvas, nextFrame, rasterize, sampleColors } from "./raster";
+import { boxIoU, loadImage, makeCanvas, nextFrame, rasterize, release, sampleColors } from "./raster";
 import { buildScene } from "./reconstruct";
 import { segment } from "./segment";
 import { buildTextElements, classifyTextRole, readRegions, runOcr, type OcrLine } from "./text";
@@ -58,6 +58,8 @@ export interface PipelineOutput {
   scene: Scene;
   original: string;
   thumbnail: string;
+  /** Milliseconds spent in each step. */
+  stepMs: Partial<Record<StepId, number>>;
 }
 
 const MAX_WORKING = 2400;
@@ -65,6 +67,17 @@ const MAX_WORKING = 2400;
 export async function runPipeline(src: string, opt: PipelineOptions): Promise<PipelineOutput> {
   const engines: EngineRun[] = [];
   const t0 = performance.now();
+  const stepMs: PipelineOutput["stepMs"] = {};
+  const started: Partial<Record<StepId, number>> = {};
+  const report = opt.onStep;
+  opt = {
+    ...opt,
+    onStep: (id, status, note) => {
+      if (status === "active") started[id] = performance.now();
+      else if (started[id] != null) stepMs[id] = Math.round(performance.now() - started[id]);
+      report(id, status, note);
+    },
+  };
 
   // ---- load & normalise
   opt.onStep("load", "active");
@@ -82,6 +95,7 @@ export async function runPipeline(src: string, opt: PipelineOptions): Promise<Pi
   const thumbC = makeCanvas(Math.min(480, W), Math.min(480, W) * (H / W));
   thumbC.ctx.drawImage(img, 0, 0, thumbC.canvas.width, thumbC.canvas.height);
   const thumbnail = thumbC.canvas.toDataURL("image/jpeg", 0.82);
+  release(work.canvas, thumbC.canvas);
   const seg0 = rasterize(img, 360); // segmentation raster
   const mid = rasterize(img, 1800); // text colour raster: fine enough that thin strokes keep their colour
   opt.onStep("load", "done", `${origW}×${origH}`);
@@ -251,7 +265,7 @@ export async function runPipeline(src: string, opt: PipelineOptions): Promise<Pi
   };
   const scene = buildScene(analysis, bg.plate);
   opt.onStep("reconstruct", "done", `${scene.layers.length} layers · ${Math.round(ms(t0) / 100) / 10}s`);
-  return { analysis, scene, original, thumbnail };
+  return { analysis, scene, original, thumbnail, stepMs };
 }
 
 // ---------------------------------------------------------------------------

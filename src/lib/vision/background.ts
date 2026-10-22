@@ -3,7 +3,7 @@
 import { colorDistance, rgbToHsl, toHex, type RGB } from "../color";
 import type { BackgroundLayer, Box, GradientValue } from "../types";
 import { uid } from "../utils";
-import { dilate, inpaint, makeCanvas, rasterToDataUrl, type Raster } from "./raster";
+import { dilate, inpaint, makeCanvas, rasterToDataUrl, release, type Raster } from "./raster";
 
 export interface BackgroundResult {
   plate: string; // full-size data URL, foreground removed
@@ -91,7 +91,11 @@ export function extractBackground(
       id: uid("bg"),
       kind: "gradient",
       label: `Gradient (${best.name})`,
-      image: g.canvas.toDataURL("image/png"),
+      image: (() => {
+        const url = g.canvas.toDataURL("image/png");
+        release(g.canvas);
+        return url;
+      })(),
       css,
       confidence: Math.min(0.95, 0.5 + best.spread / 400),
       meta: { angle: best.angle, stops: stops.length },
@@ -187,6 +191,7 @@ export function extractBackground(
       by = (i / w) | 0;
     }
   }
+  release(small.canvas, plateC.canvas, orig.canvas, blurred.canvas, texC.canvas, blurC.canvas, ov.canvas);
   const lightSmall = rasterToDataUrl({ width: w, height: h, data: light }, "image/png");
   layers.push({
     id: uid("bg"),

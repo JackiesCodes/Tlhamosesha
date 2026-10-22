@@ -1,7 +1,8 @@
 // Generates synthetic designed videos (animated poster scenes joined by cuts
 // and fades) with an exact answer key.
 //
-//   node video-generate.mjs [count=12] [seed=101]
+//   node video-generate.mjs [count=12] [seed=101] [minScenes=3] [maxScenes=5]
+//   EVAL_SET=long node video-generate.mjs 3 303 13 16    # ~60-second videos
 //
 // Each scene is a poster from posters.mjs whose text and objects animate in
 // (fade, slide or scale) and sometimes out again, driven frame by frame with
@@ -20,6 +21,8 @@ import { createPosterKit, fitPoster, posterTruth } from "./posters.mjs";
 
 const COUNT = +(process.argv[2] ?? 12);
 const SEED = +(process.argv[3] ?? 101);
+const MIN_SCENES = +(process.argv[4] ?? 3);
+const MAX_SCENES = +(process.argv[5] ?? 5);
 const FPS = 25;
 const OUT = path.join(import.meta.dirname, process.env.EVAL_SET ? `videos-${process.env.EVAL_SET}` : "videos");
 const TMP = path.join(OUT, ".tmp");
@@ -65,7 +68,7 @@ for (let v = 0; v < COUNT; v++) {
   const tier = ["clean", "textured", "photo"][Math.floor(v / FORMATS.length) % 3];
   const themeKey = pick(Object.keys(THEMES));
   const palette = pick(PALETTES);
-  const nScenes = Math.floor(between(3, 6));
+  const nScenes = Math.floor(between(MIN_SCENES, MAX_SCENES + 1));
   const scenes = [];
   const parts = [];
 

@@ -1,26 +1,20 @@
 // Video breakdown: split into scenes, run the still-image pipeline on each
 // scene's keyframe(s), then time every layer across its scene.
-import type { AnalysisResult, Box, DetectedObject, TextElement } from "../types";
-import { boxIoU } from "../vision/raster";
+import type { AnalysisResult, Box, LayerTiming, VideoScene } from "../types";
+import { buildScene } from "../vision/reconstruct";
+import { boxIoU, loadImage, makeCanvas, release } from "../vision/raster";
 import { runPipeline } from "../vision/pipeline";
 import { count, detectCuts, edges, persistence, shrink, type Cut, type Mini } from "./cuts";
 import { captureFrames, closeVideo, frameAt, grabFrame, grayAt, openVideo, type FrameSet } from "./frames";
 
-export interface Timed {
-  /** seconds, when the layer is half-way in and half-way out */
-  in: number;
-  out: number;
-}
+export const VIDEO_STEPS = [
+  { id: "frames", label: "Reading frames" },
+  { id: "scenes", label: "Finding scenes" },
+  { id: "keyframes", label: "Breaking down each scene" },
+  { id: "timing", label: "Timing every layer" },
+] as const;
 
-export interface VideoScene {
-  start: number;
-  end: number;
-  keyframes: number[];
-  thumbnail: string;
-  texts: (TextElement & Timed)[];
-  objects: (DetectedObject & Timed)[];
-  analysis: AnalysisResult;
-}
+export type VideoStepId = (typeof VIDEO_STEPS)[number]["id"];
 
 export interface VideoBreakdown {
   width: number;
@@ -31,6 +25,8 @@ export interface VideoBreakdown {
   scenes: VideoScene[];
   /** seconds spent in each stage */
   timings: Record<"decode" | "cuts" | "keyframes" | "timing" | "total", number>;
+  /** milliseconds per still-image step, summed over all keyframes */
+  stepMs: Record<string, number>;
 }
 
 export interface VideoOptions {
@@ -38,113 +34,149 @@ export interface VideoOptions {
   ocrInvertPass: boolean;
   sensitivity: number;
   maxObjects: number;
-  onStatus?: (stage: string, progress: number) => void;
+  onStep?: (id: VideoStepId, status: "active" | "done", note?: string) => void;
+  onProgress?: (id: VideoStepId, p: number, note?: string) => void;
 }
 
+/** Longest video we accept for now, in seconds. */
+export const MAX_VIDEO_SECONDS = 60;
+
 const now = () => performance.now() / 1000;
+const MIN_SCENE = 0.7; // seconds
 
 export async function analyzeVideo(src: string, fileName: string, opt: VideoOptions): Promise<VideoBreakdown> {
   const t0 = now();
   const timings = { decode: 0, cuts: 0, keyframes: 0, timing: 0, total: 0 };
   const video = await openVideo(src);
+  if (video.duration > MAX_VIDEO_SECONDS + 0.5) {
+    closeVideo(video);
+    throw new Error(`This video is ${Math.round(video.duration)} seconds long. Videos up to ${MAX_VIDEO_SECONDS} seconds are supported for now; trim it and try again.`);
+  }
 
-  opt.onStatus?.("Reading frames", 0);
+  opt.onStep?.("frames", "active");
   let t = now();
-  const fs = await captureFrames(video, { onProgress: (p) => opt.onStatus?.("Reading frames", p) });
+  const fs = await captureFrames(video, { onProgress: (p) => opt.onProgress?.("frames", p) });
   timings.decode = now() - t;
+  opt.onStep?.("frames", "done", `${fs.frames.length} frames`);
 
-  opt.onStatus?.("Finding scenes", 0);
+  opt.onStep?.("scenes", "active");
   t = now();
   const mini = shrink(fs);
   const cuts = detectCuts(fs, mini);
   for (const c of cuts) if (c.type === "cut") c.time = await refineCut(video, fs, c.time);
+  // A "scene" under 0.7 s is almost always a false break (an element popping
+  // in at the very start or end); fold it into its neighbour.
+  for (let i = cuts.length - 1; i >= 0; i--) {
+    const prev = i > 0 ? cuts[i - 1].time : 0;
+    const next = i + 1 < cuts.length ? cuts[i + 1].time : fs.duration;
+    if (cuts[i].time - prev < MIN_SCENE || next - cuts[i].time < MIN_SCENE) cuts.splice(i, 1);
+  }
   const bounds = [0, ...cuts.map((c) => c.time), fs.duration];
-  timings.cuts = now() - t;
 
   // Grab every keyframe first, then close the video so its decoder isn't held
   // while the (memory-hungry) still-image analysis runs.
-  t = now();
-  const plan: { start: number; end: number; keys: { t: number; url: string }[] }[] = [];
+  const plan: { start: number; end: number; keys: { t: number; url: string }[]; empty: boolean }[] = [];
   for (let s = 0; s + 1 < bounds.length; s++) {
     const keys = [];
-    for (const kt of pickKeyframes(fs, mini, bounds[s], bounds[s + 1], cuts)) keys.push({ t: kt, url: await grabFrame(video, kt) });
-    plan.push({ start: bounds[s], end: bounds[s + 1], keys });
+    const picked = pickKeyframes(fs, mini, bounds[s], bounds[s + 1], cuts);
+    for (const kt of picked.keys) keys.push({ t: kt, url: await grabFrame(video, kt) });
+    plan.push({ start: bounds[s], end: bounds[s + 1], keys, empty: picked.empty });
   }
   closeVideo(video);
-  let tKey = now() - t;
+  timings.cuts = now() - t;
+  opt.onStep?.("scenes", "done", `${plan.length} scene${plan.length === 1 ? "" : "s"}`);
 
   const scenes: VideoScene[] = [];
-  let tTime = 0;
-  for (const [s, { start, end, keys }] of plan.entries()) {
-    opt.onStatus?.(`Breaking down scene ${s + 1} of ${plan.length}`, s / plan.length);
+  const stepMs: Record<string, number> = {};
+  opt.onStep?.("keyframes", "active");
+  for (const [s, { start, end, keys, empty }] of plan.entries()) {
+    opt.onProgress?.("keyframes", s / plan.length, `Scene ${s + 1} of ${plan.length}`);
     t = now();
-    const results: { analysis: AnalysisResult; thumbnail: string; t: number }[] = [];
+    const outs = [];
     for (const key of keys) {
       try {
         const out = await runPipeline(key.url, {
           fileName: `${fileName} @ ${key.t.toFixed(2)}s`,
           fileSize: 0,
           mimeType: "image/png",
-          ocr: opt.ocr,
+          // Nothing to read on a near-blank frame, and OCR on pure grain is slow.
+          ocr: opt.ocr && !empty,
           ocrInvertPass: opt.ocrInvertPass,
           cloud: false,
           sensitivity: opt.sensitivity,
           maxObjects: opt.maxObjects,
           onStep: () => {},
         });
-        results.push({ analysis: out.analysis, thumbnail: out.thumbnail, t: key.t });
+        outs.push({ ...out, t: key.t });
+        for (const [k, v] of Object.entries(out.stepMs)) stepMs[k] = (stepMs[k] ?? 0) + (v ?? 0);
       } finally {
         URL.revokeObjectURL(key.url);
       }
     }
-    tKey += now() - t;
+    timings.keyframes += now() - t;
 
-    // Merge layers found on different keyframes; boxes go to video pixels.
+    // Layers from a second keyframe join the first one's analysis, and each
+    // element remembers which keyframe it was seen on, for timing.
     t = now();
-    const texts: (TextElement & { key: number })[] = [];
-    const objects: (DetectedObject & { key: number })[] = [];
-    for (const r of results) {
-      const k = fs.width / r.analysis.metadata.width;
-      const toVideo = (b: Box) => ({ x: b.x * k, y: b.y * k, width: b.width * k, height: b.height * k });
-      for (const x of r.analysis.texts) {
-        const box = toVideo(x.box);
-        if (!texts.some((o) => boxIoU(o.box, box) > 0.5 && o.text === x.text))
-          texts.push({ ...x, box, font: { ...x.font, sizePx: x.font.sizePx * k }, key: r.t });
+    const [main, ...extra] = outs;
+    const analysis: AnalysisResult = { ...main.analysis, texts: [...main.analysis.texts], objects: [...main.analysis.objects] };
+    const seenAt = new Map<string, number>([...analysis.texts, ...analysis.objects].map((x) => [x.id, main.t]));
+    for (const o of extra) {
+      const k = analysis.metadata.width / o.analysis.metadata.width;
+      const scale = (b: Box) => ({ x: b.x * k, y: b.y * k, width: b.width * k, height: b.height * k });
+      for (const x of o.analysis.texts) {
+        const box = scale(x.box);
+        if (analysis.texts.some((y) => boxIoU(y.box, box) > 0.5 && y.text === x.text)) continue;
+        analysis.texts.push({ ...x, box, font: { ...x.font, sizePx: x.font.sizePx * k } });
+        seenAt.set(x.id, o.t);
       }
-      for (const x of r.analysis.objects) {
-        const box = toVideo(x.box);
-        if (!objects.some((o) => boxIoU(o.box, box) > 0.5)) objects.push({ ...x, box, key: r.t });
+      for (const x of o.analysis.objects) {
+        const box = scale(x.box);
+        if (analysis.objects.some((y) => boxIoU(y.box, box) > 0.5)) continue;
+        analysis.objects.push({ ...x, box });
+        seenAt.set(x.id, o.t);
       }
+    }
+    const plate = analysis.backgrounds.find((b) => b.kind === "base")?.image ?? main.original;
+    const toVideo = fs.width / analysis.metadata.width;
+    const timing: Record<string, LayerTiming> = {};
+    for (const x of [...analysis.texts, ...analysis.objects]) {
+      const b = x.box;
+      timing[x.id] = visibility(fs, { x: b.x * toVideo, y: b.y * toVideo, width: b.width * toVideo, height: b.height * toVideo }, start, end, seenAt.get(x.id)!);
     }
     scenes.push({
       start,
       end,
+      transition: s === 0 ? null : cuts[s - 1].type,
       keyframes: keys.map((k) => k.t),
-      thumbnail: results[0].thumbnail,
-      texts: texts.map(({ key, ...x }) => ({ ...x, ...visibility(fs, x.box, start, end, key) })),
-      objects: objects.map(({ key, ...x }) => ({ ...x, ...visibility(fs, x.box, start, end, key) })),
-      analysis: results[0].analysis,
+      // Analysed losslessly; stored as JPEG, which is a fraction of the size.
+      original: await toJpeg(main.original),
+      thumbnail: main.thumbnail,
+      analysis,
+      scene: extra.length ? buildScene(analysis, plate) : main.scene,
+      timing,
     });
-    tTime += now() - t;
+    timings.timing += now() - t;
   }
-  timings.keyframes = tKey;
-  timings.timing = tTime;
+  opt.onStep?.("keyframes", "done");
+  opt.onStep?.("timing", "done");
   timings.total = now() - t0;
-  return { width: fs.width, height: fs.height, duration: fs.duration, framesAnalysed: fs.frames.length, cuts, scenes, timings };
+  return { width: fs.width, height: fs.height, duration: fs.duration, framesAnalysed: fs.frames.length, cuts, scenes, timings, stepMs };
 }
 
 /**
  * The frame showing the most content, away from the transitions. If other
  * frames show sizeable content it lacks (layers that leave before the busiest
- * moment), the most different of them becomes a second keyframe.
+ * moment), the most different of them becomes a second keyframe. A scene whose
+ * busiest frame is still nearly blank is flagged as empty.
  */
-function pickKeyframes(fs: FrameSet, mini: Mini, start: number, end: number, cuts: Cut[]): number[] {
+function pickKeyframes(fs: FrameSet, mini: Mini, start: number, end: number, cuts: Cut[]): { keys: number[]; empty: boolean } {
   const margin = (c?: Cut) => (c ? c.length / 2 + 0.12 : 0);
   const lo = start + margin(cuts.find((c) => Math.abs(c.time - start) < 1e-6));
   const hi = end - margin(cuts.find((c) => Math.abs(c.time - end) < 1e-6));
   const idx: number[] = [];
   for (let i = frameAt(fs, lo); i <= frameAt(fs, hi); i++) if (fs.frames[i].t >= lo && fs.frames[i].t <= hi) idx.push(i);
-  if (!idx.length) return [(start + end) / 2];
+  if (!idx.length) return { keys: [(start + end) / 2], empty: false };
   const E = new Map(idx.map((i) => [i, edges(mini, mini.frames[i])]));
   const best = idx.reduce((a, b) => (count(E.get(b)!) > count(E.get(a)!) ? b : a));
   const keys = [fs.frames[best].t];
@@ -159,7 +191,7 @@ function pickKeyframes(fs: FrameSet, mini: Mini, start: number, end: number, cut
     }
   }
   if (worst >= 0 && worstKept < 0.75) keys.push(fs.frames[worst].t);
-  return keys;
+  return { keys, empty: count(E.get(best)!) < mini.w * mini.h * 0.002 };
 }
 
 /**
@@ -167,7 +199,7 @@ function pickKeyframes(fs: FrameSet, mini: Mini, start: number, end: number, cut
  * the keyframe where it was found. It counts as visible once it is more than
  * half-way from its "absent" look to its keyframe look.
  */
-function visibility(fs: FrameSet, box: Box, start: number, end: number, keyT: number): Timed {
+function visibility(fs: FrameSet, box: Box, start: number, end: number, keyT: number): LayerTiming {
   const k = fs.w / fs.width;
   const x0 = Math.max(0, Math.floor(box.x * k));
   const y0 = Math.max(0, Math.floor(box.y * k));
@@ -229,4 +261,13 @@ async function refineCut(video: HTMLVideoElement, fs: FrameSet, t: number): Prom
     else hi = mid;
   }
   return (lo + hi) / 2;
+}
+
+async function toJpeg(src: string): Promise<string> {
+  const img = await loadImage(src);
+  const { canvas, ctx } = makeCanvas(img.naturalWidth, img.naturalHeight);
+  ctx.drawImage(img, 0, 0);
+  const url = canvas.toDataURL("image/jpeg", 0.9);
+  release(canvas);
+  return url;
 }

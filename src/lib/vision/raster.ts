@@ -29,22 +29,38 @@ export function makeCanvas(width: number, height: number) {
   return { canvas, ctx };
 }
 
+/**
+ * Frees canvases now instead of at the next garbage collection. A breakdown
+ * makes many full-size scratch canvases, and a video breakdown makes them for
+ * every scene, so waiting for GC raises peak memory considerably.
+ */
+export function release(...canvases: HTMLCanvasElement[]) {
+  for (const c of canvases) {
+    c.width = 0;
+    c.height = 0;
+  }
+}
+
 export function rasterize(img: CanvasImageSource & { width: number; height: number }, maxDim: number): Raster {
   const w0 = (img as HTMLImageElement).naturalWidth || img.width;
   const h0 = (img as HTMLImageElement).naturalHeight || img.height;
   const scale = Math.max(1, Math.max(w0, h0) / maxDim);
   const w = Math.round(w0 / scale);
   const h = Math.round(h0 / scale);
-  const { ctx } = makeCanvas(w, h);
+  const { canvas, ctx } = makeCanvas(w, h);
   ctx.imageSmoothingQuality = "high";
   ctx.drawImage(img, 0, 0, w, h);
-  return { width: w, height: h, data: ctx.getImageData(0, 0, w, h).data, scale };
+  const data = ctx.getImageData(0, 0, w, h).data;
+  release(canvas);
+  return { width: w, height: h, data, scale };
 }
 
 export function rasterToDataUrl(r: { width: number; height: number; data: Uint8ClampedArray }, type = "image/png", quality = 0.92) {
   const { canvas, ctx } = makeCanvas(r.width, r.height);
   ctx.putImageData(new ImageData(new Uint8ClampedArray(r.data), r.width, r.height), 0, 0);
-  return canvas.toDataURL(type, quality);
+  const url = canvas.toDataURL(type, quality);
+  release(canvas);
+  return url;
 }
 
 export const px = (r: Raster, x: number, y: number): RGB => {

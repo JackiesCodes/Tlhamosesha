@@ -5,8 +5,11 @@ import { FileImage, UploadCloud } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-const ACCEPT = ["image/png", "image/jpeg", "image/webp", "image/svg+xml", "image/gif", "image/bmp", "image/avif"];
-const MAX_BYTES = 25 * 1024 * 1024;
+const IMAGES = ["image/png", "image/jpeg", "image/webp", "image/svg+xml", "image/gif", "image/bmp", "image/avif"];
+const VIDEOS = ["video/mp4", "video/webm", "video/quicktime"];
+const ACCEPT = [...IMAGES, ...VIDEOS];
+const MAX_IMAGE_BYTES = 25 * 1024 * 1024;
+const MAX_VIDEO_BYTES = 200 * 1024 * 1024;
 
 export function Dropzone({ onFile, compact, className }: { onFile: (f: File) => void; compact?: boolean; className?: string }) {
   const [over, setOver] = useState(false);
@@ -16,8 +19,10 @@ export function Dropzone({ onFile, compact, className }: { onFile: (f: File) => 
   const accept = useCallback(
     (f?: File | null) => {
       if (!f) return;
-      if (!ACCEPT.includes(f.type)) return setError("Unsupported file — use PNG, JPG, WEBP, SVG, GIF or AVIF.");
-      if (f.size > MAX_BYTES) return setError("File is larger than 25 MB.");
+      if (!ACCEPT.includes(f.type)) return setError("Unsupported file — use an image (PNG, JPG, WEBP, SVG, GIF, AVIF) or a video (MP4, WebM, MOV).");
+      const video = VIDEOS.includes(f.type);
+      if (!video && f.size > MAX_IMAGE_BYTES) return setError("Images can be up to 25 MB.");
+      if (video && f.size > MAX_VIDEO_BYTES) return setError("Videos can be up to 200 MB.");
       setError(null);
       onFile(f);
     },
@@ -63,14 +68,14 @@ export function Dropzone({ onFile, compact, className }: { onFile: (f: File) => 
         <UploadCloud className="h-7 w-7 text-brand" />
       </div>
       <div className="relative">
-        <p className="font-display text-lg font-semibold text-white">Drop a poster to break it down</p>
-        <p className="mt-1 text-sm text-muted-foreground">Sports graphics, banners, flyers, infographics, ads, magazine pages, diagrams…</p>
+        <p className="font-display text-lg font-semibold text-white">Drop a poster or video to break it down</p>
+        <p className="mt-1 text-sm text-muted-foreground">Sports graphics, banners, flyers, ads, social reels, motion-graphic videos…</p>
       </div>
       <div className="relative flex flex-wrap items-center justify-center gap-3">
         <Button size={compact ? "default" : "lg"} onClick={() => input.current?.click()}>
-          <FileImage /> Choose image
+          <FileImage /> Choose file
         </Button>
-        <span className="text-xs text-muted-foreground">or paste · PNG JPG WEBP SVG · up to 25 MB</span>
+        <span className="text-xs text-muted-foreground">or paste an image · images up to 25 MB · MP4, WebM or MOV up to 60 s</span>
       </div>
       {error && <p className="relative text-sm text-rose-700 dark:text-rose-300">{error}</p>}
       <input

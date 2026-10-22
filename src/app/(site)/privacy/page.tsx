@@ -5,7 +5,7 @@ import { BRAND } from "@/lib/brand";
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
-  description: `How ${BRAND.name} handles your images and data.`,
+  description: `How ${BRAND.name} handles your images, videos and data.`,
 };
 
 // Describes the app as built: in-browser processing, browser-only storage,
@@ -19,12 +19,14 @@ export default function PrivacyPage() {
         {BRAND.operator}. The short version: <strong>the designs you analyse stay on your device.</strong>
       </p>
 
-      <h2>Your images and projects</h2>
+      <h2>Your images, videos and projects</h2>
       <ul>
-        <li>When you add an image, {BRAND.name} analyses it inside your web browser. The image is not uploaded to our servers.</li>
         <li>
-          Your projects — the original image, the extracted assets, the analysis and your edits — are saved in your browser&apos;s storage on
-          your device. We cannot see, access or recover them.
+          When you add an image or a video, {BRAND.name} analyses it inside your web browser. The file is not uploaded to our servers.
+        </li>
+        <li>
+          Your projects — the original image (for a video, the frames chosen from each scene), the extracted assets, the analysis and your edits
+          — are saved in your browser&apos;s storage on your device. The video file itself is not kept. We cannot see, access or recover them.
         </li>
         <li>
           You can delete them at any time from <Link href="/settings#data">Settings → Your data → Delete all data</Link>, or by clearing this
@@ -36,7 +38,7 @@ export default function PrivacyPage() {
       <p>
         If we offer an optional cloud vision feature, it is off by default and appears in Settings with the name of the provider. Only if you
         switch it on, a reduced-size copy of each image you analyse is sent to that provider to improve the results, and is then handled under
-        that provider&apos;s own privacy terms. You can switch it off at any time.
+        that provider&apos;s own privacy terms. Videos are never sent, even with this switched on. You can switch it off at any time.
       </p>
 
       <h2>Information our servers receive</h2>

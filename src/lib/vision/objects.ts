@@ -2,7 +2,7 @@
 import { colorDistance, hexToRgb, type RGB } from "../color";
 import type { Box, DetectedObject, ObjectKind, TextElement } from "../types";
 import { uid } from "../utils";
-import { boxCoverage, makeCanvas, padBox, roundBox, scaleBox, type Raster } from "./raster";
+import { boxCoverage, makeCanvas, padBox, release, roundBox, scaleBox, type Raster } from "./raster";
 import { isSkin, mergeNearby, type Segmentation } from "./segment";
 
 const AD_HINT = /\b(shop|buy|order|price|sale|new|drop|launch|only|offer|deal|now)\b|[$€£]|\bR\s?\d/i;
@@ -297,7 +297,9 @@ export function cutout(
   const f = makeCanvas(W, H);
   f.ctx.filter = "blur(0.6px)";
   f.ctx.drawImage(canvas, 0, 0);
-  return { cutout: f.canvas.toDataURL("image/png"), crop, coverage: round2(kept / (W * H)) };
+  const cut = f.canvas.toDataURL("image/png");
+  release(canvas, f.canvas);
+  return { cutout: cut, crop, coverage: round2(kept / (W * H)) };
 }
 
 const smoothstep = (a: number, b: number, v: number) => {

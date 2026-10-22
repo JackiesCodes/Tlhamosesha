@@ -8,10 +8,9 @@ import { PageHeader } from "@/components/common/page-header";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { SAMPLES } from "@/lib/samples";
-import { fileToInput, urlToInput, useAnalyze } from "@/lib/store/analyze";
+import { fileToInput, isVideo, urlToInput, useAnalyze } from "@/lib/store/analyze";
 import { useApp } from "@/lib/store/app";
 import { cn, formatBytes } from "@/lib/utils";
-import { PIPELINE_STEPS } from "@/lib/vision/pipeline";
 
 export default function UploadPage() {
   return (
@@ -24,7 +23,7 @@ export default function UploadPage() {
 function UploadView() {
   const router = useRouter();
   const params = useSearchParams();
-  const { input, setInput, start, running, steps, error, resultId, reset } = useAnalyze();
+  const { input, setInput, start, running, stepList, steps, error, resultId, reset } = useAnalyze();
   const kicked = useRef(false);
   const cloud = useApp((st) => st.settings.cloud);
 
@@ -59,18 +58,25 @@ function UploadView() {
     await useAnalyze.getState().start();
   };
 
-  const doneCount = PIPELINE_STEPS.filter((s) => ["done", "skipped", "error"].includes(steps[s.id].status)).length;
-  const pct = Math.round((doneCount / PIPELINE_STEPS.length) * 100);
+  // Count finished steps, plus the running step's own progress, so long video steps still move the bar.
+  const doneCount = stepList.reduce((n, s) => {
+    const st = steps[s.id];
+    if (!st) return n;
+    if (["done", "skipped", "error"].includes(st.status)) return n + 1;
+    return st.status === "active" && st.progress !== undefined ? n + Math.min(0.95, st.progress) : n;
+  }, 0);
+  const pct = Math.round((doneCount / stepList.length) * 100);
+  const video = isVideo(input);
 
   return (
     <div className="mx-auto max-w-[1200px] space-y-8 px-4 py-8 sm:px-8">
       <PageHeader
         eyebrow="Upload"
-        title="New poster breakdown"
+        title="New breakdown"
         description={
           cloud
-            ? "Analysis starts in your browser. Cloud vision is switched on in Settings, so a downscaled copy of your image is also sent to the configured vision service. Best results come from clean digital graphics."
-            : "Analysis runs privately in your browser — your image is not uploaded to a server. Best results come from clean digital graphics such as posters, banners and social posts."
+            ? "Analysis starts in your browser. Cloud vision is switched on in Settings, so a downscaled copy of each image is also sent to the configured vision service (videos are always analysed only in your browser). Best results come from clean digital graphics."
+            : "Analysis runs privately in your browser — your file is not uploaded to a server. Best results come from clean digital graphics: posters, banners, social posts and motion-graphic videos."
         }
       />
 
@@ -108,8 +114,12 @@ function UploadView() {
             {/* Preview with scan animation */}
             <div className="panel relative flex items-center justify-center overflow-hidden p-6">
               <div className="relative max-h-[70vh]">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={input.src} alt="Uploaded poster" className="max-h-[66vh] w-auto rounded-xl object-contain shadow-panel" />
+                {video ? (
+                  <video src={input.src} muted loop autoPlay playsInline className="max-h-[66vh] w-auto rounded-xl object-contain shadow-panel" aria-label="Uploaded video" />
+                ) : (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={input.src} alt="Uploaded poster" className="max-h-[66vh] w-auto rounded-xl object-contain shadow-panel" />
+                )}
                 {running && (
                   <>
                     <div className="absolute inset-0 rounded-xl bg-grid-faint [background-size:24px_24px]" />
@@ -133,8 +143,8 @@ function UploadView() {
               <Progress value={pct} className="mt-4" />
 
               <ol className="mt-6 space-y-1">
-                {PIPELINE_STEPS.map((s, i) => {
-                  const st = steps[s.id];
+                {stepList.map((s, i) => {
+                  const st = steps[s.id] ?? { status: "pending" };
                   return (
                     <motion.li
                       key={s.id}
@@ -148,6 +158,7 @@ function UploadView() {
                     >
                       <StepIcon status={st.status} />
                       <span className={cn("flex-1", st.status === "pending" ? "text-muted-foreground" : "text-white")}>{s.label}</span>
+                      {st.status === "active" && st.note && video && <span className="text-[11px] text-muted-foreground">{st.note}</span>}
                       {st.status === "active" && st.progress !== undefined && (
                         <span className="font-mono text-[11px] text-brand">{Math.round(st.progress * 100)}%</span>
                       )}
@@ -164,7 +175,7 @@ function UploadView() {
                       <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" /> {error}
                     </div>
                     <Button variant="secondary" className="w-full" onClick={() => reset()}>
-                      <RotateCcw /> Try another image
+                      <RotateCcw /> Try another file
                     </Button>
                   </div>
                 ) : resultId ? (
@@ -181,7 +192,9 @@ function UploadView() {
                     </Button>
                   </div>
                 ) : (
-                  <p className="text-center text-xs text-muted-foreground">Analysing locally — keep this tab open.</p>
+                  <p className="text-center text-xs text-muted-foreground">
+                    Analysing locally — keep this tab open.{video ? " A video takes about one to three times its length." : ""}
+                  </p>
                 )}
               </div>
             </div>

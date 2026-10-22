@@ -30,7 +30,7 @@ export function PreviewPanel({ project, className }: { project: Project; classNa
   return (
     <div className={cn("flex min-h-0 flex-col", className)}>
       <div className="flex items-center justify-between gap-2">
-        <div className="panel-title">Poster preview</div>
+        <div className="panel-title">{project.video ? `Scene ${project.video.active + 1} preview` : "Poster preview"}</div>
         <div className="flex rounded-lg border border-white/[0.06] bg-surface-sunken/70 p-0.5">
           {MODES.map((m) => (
             <button

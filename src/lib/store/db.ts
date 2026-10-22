@@ -1,11 +1,14 @@
 // Browser persistence (IndexedDB) for projects, which carry large image payloads.
 import { clear, createStore, del, get, set, values } from "idb-keyval";
 import type { Project, ProjectSummary } from "../types";
+import { syncedScenes } from "../video/project";
 
 const isBrowser = typeof indexedDB !== "undefined";
 // IndexedDB names predate the RevVisual rename; kept so saved projects survive.
 const projectsStore = isBrowser ? createStore("tlhamosesha-projects", "projects") : undefined;
 const summaryStore = isBrowser ? createStore("tlhamosesha-summaries", "summaries") : undefined;
+
+const scenesOf = (p: Project) => (p.video ? syncedScenes(p) : [p]);
 
 export function summarize(p: Project): ProjectSummary {
   return {
@@ -15,15 +18,17 @@ export function summarize(p: Project): ProjectSummary {
     updatedAt: p.updatedAt,
     thumbnail: p.thumbnail,
     starred: p.starred,
+    video: p.video ? { duration: p.video.duration, scenes: p.video.scenes.length } : undefined,
     designType: p.analysis.metadata.designType.label,
     confidence: p.analysis.metadata.designType.confidence,
     width: p.analysis.metadata.width,
     height: p.analysis.metadata.height,
+    // A video's counts cover all of its scenes.
     counts: {
-      texts: p.analysis.texts.length,
-      objects: p.analysis.objects.length,
+      texts: scenesOf(p).reduce((n, s) => n + s.analysis.texts.length, 0),
+      objects: scenesOf(p).reduce((n, s) => n + s.analysis.objects.length, 0),
       colors: p.analysis.palette.length,
-      layers: p.scene.layers.length,
+      layers: scenesOf(p).reduce((n, s) => n + s.scene.layers.length, 0),
     },
     dnaOverall: p.analysis.dna.overall,
   };

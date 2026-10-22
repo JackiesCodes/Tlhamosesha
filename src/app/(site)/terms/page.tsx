@@ -17,15 +17,15 @@ export default function TermsPage() {
 
       <h2>What {BRAND.name} does</h2>
       <p>
-        {BRAND.name} analyses images you provide and produces a breakdown — text, images, background layers, colours and layout — and an editable
-        reconstruction you can export. The analysis is automated and runs in your browser.
+        {BRAND.name} analyses images and videos you provide and produces a breakdown — text, images, background layers, colours, layout and, for
+        videos, scenes and timing — and an editable reconstruction you can export. The analysis is automated and runs in your browser.
       </p>
 
       <h2>Your content and your rights to it</h2>
       <ul>
         <li>
-          <strong>Only use images you have the right to use.</strong> That means images you created, own, or have permission to analyse and
-          modify.
+          <strong>Only use images and videos you have the right to use.</strong> That means material you created, own, or have permission to
+          analyse and modify.
         </li>
         <li>
           Breaking a design down does not give you any rights to its artwork, photographs, logos, trademarks or fonts. Reusing someone else&apos;s

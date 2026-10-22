@@ -15,6 +15,7 @@ import { BreakdownTabs } from "./breakdown-tabs";
 import { EditorView } from "./editor-view";
 import { ExportMenu } from "./export-menu";
 import { PreviewPanel } from "./preview-panel";
+import { SceneStrip, VideoBadge } from "./scene-strip";
 
 export function Workspace({ id }: { id: string }) {
   const params = useSearchParams();
@@ -122,6 +123,7 @@ export function Workspace({ id }: { id: string }) {
             <span>
               {m.width}×{m.height} · {m.aspectRatio}
             </span>
+            <VideoBadge project={project} />
             <span className="flex items-center gap-1">
               {saving || dirty ? <Cloud className="h-3 w-3 animate-pulse" /> : <Check className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />}
               {saving || dirty ? "Saving…" : "Saved"}
@@ -165,6 +167,8 @@ export function Workspace({ id }: { id: string }) {
           <ExportMenu project={project} />
         </div>
       </div>
+
+      <SceneStrip project={project} />
 
       {/* Body */}
       <div className="mt-4 min-h-0 flex-1">

@@ -37,6 +37,8 @@ keyframes, so cut times, layer boxes and in/out times are exact.
 ```bash
 node video-generate.mjs 12 101                 # -> videos/ (WebM + MP4 + answer keys)
 EVAL_SET=heldout node video-generate.mjs 12 202
+EVAL_SET=long node video-generate.mjs 3 303 13 16    # 44–53 s videos
+EVAL_SET=long60 node video-generate.mjs 1 404 16 16  # one 59 s video, at the length limit
 # app running on :3100; the prototype lives at /labs/video (not linked in the app)
 node video-run.mjs my-change
 EVAL_SET=heldout node video-run.mjs my-change

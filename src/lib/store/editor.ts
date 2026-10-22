@@ -2,6 +2,7 @@
 // Workspace editor state: current project, selection, undo/redo history.
 import { create } from "zustand";
 import type { Project, Scene, SceneLayer } from "../types";
+import { syncedScenes } from "../video/project";
 
 export type PreviewMode = "split" | "overlay" | "difference";
 export type WorkspaceTab = "elements" | "layers" | "typography" | "colors" | "layout" | "metadata" | "dna";
@@ -20,6 +21,8 @@ interface EditorState {
   setTab: (t: WorkspaceTab) => void;
   setMode: (m: WorkspaceMode) => void;
   load: (p: Project) => void;
+  /** Video projects: show another scene in the editor (keeps edits to the current one). */
+  switchScene: (index: number) => void;
   select: (id: string | null) => void;
   highlight: (ids: string[]) => void;
   setPreviewMode: (m: PreviewMode) => void;
@@ -62,6 +65,26 @@ export const useEditor = create<EditorState>()((set, get) => {
     setTab: (tab) => set({ tab }),
     setMode: (mode) => set({ mode }),
     load: (p) => set({ project: p, selectedId: null, highlightIds: [], past: [], future: [], dirty: false }),
+    switchScene: (index) => {
+      const p = get().project;
+      if (!p?.video || index === p.video.active || !p.video.scenes[index]) return;
+      const scenes = syncedScenes(p);
+      const next = scenes[index];
+      set({
+        project: {
+          ...p,
+          original: next.original,
+          analysis: next.analysis,
+          scene: next.scene,
+          video: { ...p.video, active: index, scenes },
+        },
+        selectedId: null,
+        highlightIds: [],
+        past: [],
+        future: [],
+        dirty: true,
+      });
+    },
     select: (id) => set({ selectedId: id }),
     highlight: (ids) => set({ highlightIds: ids }),
     setPreviewMode: (m) => set({ previewMode: m }),

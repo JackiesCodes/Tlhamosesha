@@ -228,6 +228,39 @@ export interface Scene {
   layers: SceneLayer[];
 }
 
+/** Seconds into the video when a layer is half-way in, and half-way out. */
+export interface LayerTiming {
+  in: number;
+  out: number;
+}
+
+export interface VideoScene {
+  start: number;
+  end: number;
+  /** How this scene begins; null for the first scene. */
+  transition: "cut" | "fade" | null;
+  /** Seconds of the frames that were broken down. */
+  keyframes: number[];
+  original: string;
+  thumbnail: string;
+  analysis: AnalysisResult;
+  scene: Scene;
+  /** Keyed by analysis element id (text or object), like a layer's sourceId. */
+  timing: Record<string, LayerTiming>;
+}
+
+export interface VideoInfo {
+  fileName: string;
+  fileSize: number;
+  mimeType: string;
+  width: number;
+  height: number;
+  duration: number;
+  /** The scene currently shown in the editor (mirrored into the project's original, analysis and scene). */
+  active: number;
+  scenes: VideoScene[];
+}
+
 export interface Project {
   id: string;
   name: string;
@@ -238,12 +271,15 @@ export interface Project {
   analysis: AnalysisResult;
   scene: Scene;
   starred?: boolean;
+  /** Present for video breakdowns. */
+  video?: VideoInfo;
 }
 
 export type ProjectSummary = Pick<
   Project,
   "id" | "name" | "createdAt" | "updatedAt" | "thumbnail" | "starred"
 > & {
+  video?: { duration: number; scenes: number };
   designType: string;
   confidence: number;
   width: number;

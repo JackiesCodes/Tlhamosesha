@@ -1,11 +1,12 @@
 "use client";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Layers, MoreHorizontal, Palette, Shapes, Star, Trash2, Type } from "lucide-react";
+import { Film, Layers, MoreHorizontal, Palette, Shapes, Star, Trash2, Type } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import type { ProjectSummary } from "@/lib/types";
 import { cn, timeAgo } from "@/lib/utils";
+import { formatTime } from "@/lib/video/project";
 
 export function ProjectCard({
   p,
@@ -32,6 +33,11 @@ export function ProjectCard({
           <Badge className="absolute left-3 top-3 border-white/10 bg-ink/70 text-white backdrop-blur">
             {p.designType} · {Math.round(p.confidence * 100)}%
           </Badge>
+          {p.video && (
+            <Badge className="absolute bottom-3 left-3 gap-1 border-white/10 bg-ink/70 text-white backdrop-blur">
+              <Film className="h-3 w-3" /> {formatTime(p.video.duration)} · {p.video.scenes} scenes
+            </Badge>
+          )}
           <div className="absolute bottom-3 right-3 flex h-10 w-10 items-center justify-center rounded-full border border-brand/40 bg-ink/80 text-xs font-bold text-brand backdrop-blur">
             {p.dnaOverall}
           </div>

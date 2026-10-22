@@ -156,13 +156,19 @@ for (const item of index.videos.slice(0, LIMIT)) {
   const pred = await page.evaluate(() => {
     const r = window.__videoBreakdown;
     if (r.error) return r;
-    const strip = (x) => ({ text: x.text, label: x.label, kind: x.kind, role: x.role, box: x.box, in: x.in, out: x.out });
+    // Layers are stored in each scene's working-image pixels; score in video pixels.
+    const strip = (s) => (x) => {
+      const k = r.width / s.analysis.metadata.width;
+      const b = x.box;
+      return { text: x.text, label: x.label, kind: x.kind, role: x.role, box: { x: b.x * k, y: b.y * k, width: b.width * k, height: b.height * k }, ...s.timing[x.id] };
+    };
     return {
       duration: r.duration,
       framesAnalysed: r.framesAnalysed,
       timings: r.timings,
+      stepMs: r.stepMs,
       cuts: r.cuts,
-      scenes: r.scenes.map((s) => ({ start: s.start, end: s.end, keyframes: s.keyframes, texts: s.texts.map(strip), objects: s.objects.map(strip) })),
+      scenes: r.scenes.map((s) => ({ start: s.start, end: s.end, keyframes: s.keyframes, texts: s.analysis.texts.map(strip(s)), objects: s.analysis.objects.map(strip(s)) })),
     };
   });
   if (pred.error) {
@@ -170,7 +176,7 @@ for (const item of index.videos.slice(0, LIMIT)) {
     continue;
   }
   const score = scoreVideo(gt, pred);
-  rows.push({ file: item.file, tier: item.tier, duration: gt.duration, seconds, peakMB: Math.round(peakMB), baseMB: Math.round(baseMB), frames: pred.framesAnalysed, timings: pred.timings, pred: { cuts: pred.cuts, scenes: pred.scenes.map((s) => ({ start: s.start, end: s.end, keyframes: s.keyframes })) }, score });
+  rows.push({ file: item.file, tier: item.tier, duration: gt.duration, seconds, peakMB: Math.round(peakMB), baseMB: Math.round(baseMB), frames: pred.framesAnalysed, timings: pred.timings, stepMs: pred.stepMs, pred: { cuts: pred.cuts, scenes: pred.scenes.map((s) => ({ start: s.start, end: s.end, keyframes: s.keyframes })) }, score });
   const cf = score.cuts.filter((c) => c.found).length;
   const tf = score.texts.filter((t) => t.found).length;
   console.log(

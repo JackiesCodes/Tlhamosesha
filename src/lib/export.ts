@@ -1,6 +1,7 @@
 // Scene exporters: PNG, JPG, SVG, PDF and design-tool JSON interchange.
 import { hexToRgb } from "./color";
 import type { Project, Scene, SceneLayer, TextLayer } from "./types";
+import { syncedScenes } from "./video/project";
 import { loadImage, makeCanvas } from "./vision/raster";
 
 export type ExportFormat = "png" | "jpg" | "svg" | "pdf" | "psd-json" | "figma-json" | "canva-json";
@@ -339,5 +340,76 @@ export async function assetsZip(p: Project) {
   );
   zip.file("layout.json", JSON.stringify(p.analysis.layout, null, 2));
   zip.file("metadata.json", JSON.stringify({ ...p.analysis.metadata, dna: p.analysis.dna, engines: p.analysis.engines }, null, 2));
+  return zip.generateAsync({ type: "blob" });
+}
+
+/**
+ * Video projects: every scene's layers as files plus a timeline. Each scene
+ * folder holds the keyframe, the rebuilt frame, the clean background and one
+ * PNG per image layer; timeline.json says where and when each layer appears.
+ */
+export async function videoLayersZip(p: Project) {
+  if (!p.video) throw new Error("This project isn't a video.");
+  const { default: JSZip } = await import("jszip");
+  const zip = new JSZip();
+  const b64 = (d: string) => d.split(",")[1];
+  const ext = (d: string) => (d.startsWith("data:image/png") ? "png" : "jpg");
+  const slug = (s: string) => s.replace(/\W+/g, "-").replace(/^-|-$/g, "").toLowerCase() || "layer";
+  const t = (s: number) => `${Math.floor(s / 60)}m${(s % 60).toFixed(1).padStart(4, "0")}s`;
+  const scenes = syncedScenes(p);
+  const timeline = {
+    format: "revvisual-video-layers",
+    version: 1,
+    video: { fileName: p.video.fileName, width: p.video.width, height: p.video.height, duration: p.video.duration },
+    note: "Times are in seconds. Layer boxes are in scene pixels; multiply by videoScale for video pixels.",
+    scenes: [] as unknown[],
+  };
+  for (const [i, s] of scenes.entries()) {
+    const folder = `scenes/${String(i + 1).padStart(2, "0")}-${t(s.start)}-${t(s.end)}`;
+    const dir = zip.folder(folder)!;
+    dir.file(`keyframe.${ext(s.original)}`, b64(s.original), { base64: true });
+    const render = await renderScene(s.scene);
+    dir.file("rebuilt.png", await new Promise<Blob>((res) => render.toBlob((b) => res(b!), "image/png")));
+    const layers = s.scene.layers.map((l, k) => {
+      const timing = l.sourceId ? s.timing[l.sourceId] : undefined;
+      const base = {
+        id: l.id,
+        name: l.name,
+        type: l.type,
+        x: Math.round(l.x),
+        y: Math.round(l.y),
+        width: Math.round(l.width),
+        height: Math.round(l.height),
+        rotation: l.rotation,
+        opacity: l.opacity,
+        visible: l.visible,
+        in: +(timing?.in ?? s.start).toFixed(3),
+        out: +(timing?.out ?? s.end).toFixed(3),
+      };
+      if ("src" in l) {
+        const file = `${l.type === "background" ? "background" : `layers/${String(k).padStart(2, "0")}-${slug(l.name)}`}.${ext(l.src)}`;
+        dir.file(file, b64(l.src), { base64: true });
+        return { ...base, file: `${folder}/${file}` };
+      }
+      if (l.type === "text") {
+        const { text, color, fontFamily, fontSize, fontWeight, align, letterSpacing, lineHeight, uppercase } = l;
+        return { ...base, text, color, fontFamily, fontSize, fontWeight, align, letterSpacing, lineHeight, uppercase };
+      }
+      return base;
+    });
+    timeline.scenes.push({
+      index: i + 1,
+      start: +s.start.toFixed(3),
+      end: +s.end.toFixed(3),
+      transition: s.transition,
+      keyframes: s.keyframes.map((k) => +k.toFixed(3)),
+      folder,
+      width: s.scene.width,
+      height: s.scene.height,
+      videoScale: +(p.video.width / s.scene.width).toFixed(4),
+      layers,
+    });
+  }
+  zip.file("timeline.json", JSON.stringify(timeline, null, 2));
   return zip.generateAsync({ type: "blob" });
 }

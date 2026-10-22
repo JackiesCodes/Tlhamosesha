@@ -80,12 +80,16 @@ const EXPORTS = ["PNG", "JPG", "SVG", "PDF", "PSD-style JSON", "Figma JSON", "Ca
 
 const FAQ = [
   {
-    q: "Is my image uploaded anywhere?",
+    q: "Is my image or video uploaded anywhere?",
     a: "No. The analysis runs inside your browser, and your projects are saved in your browser's storage on your device. Nothing is sent to a server unless you switch on an optional cloud feature where one is offered, and it is clearly labelled when it is.",
   },
   {
     q: "How accurate is it?",
     a: "It works best on clean digital graphics — posters, banners, flyers and social posts with clear text and shapes. Busy photographs, heavy textures and very stylised lettering are harder: you may need to fix some text or adjust a cut-out by hand in the editor.",
+  },
+  {
+    q: "Does it work on videos?",
+    a: "Yes, for motion-graphic videos up to 60 seconds, such as ads, promos and social reels. RevVisual splits the video into scenes, breaks each scene down into editable layers, and works out when every layer appears and leaves. You can export every scene's layers with a timeline. Live-action footage stays as one layer; only titles, logos and captions on top are pulled out. A video takes about one to three times its length to analyse.",
   },
   {
     q: "Do I need an account?",

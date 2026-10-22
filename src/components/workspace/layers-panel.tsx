@@ -28,6 +28,7 @@ import { GOOGLE_FONTS } from "@/lib/export";
 import { useEditor } from "@/lib/store/editor";
 import type { SceneLayer, TextLayer } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { formatTime, layerTiming } from "@/lib/video/project";
 
 const TYPE_ICON = { background: Wallpaper, image: ImageIcon, text: Type, shape: Square } as const;
 
@@ -60,7 +61,17 @@ export function LayerList({ className }: { className?: string }) {
                 <Icon className="h-3.5 w-3.5 text-muted-foreground" />
               )}
             </span>
-            <span className={cn("min-w-0 flex-1 truncate", !l.visible && "opacity-40")}>{l.name}</span>
+            <span className={cn("flex min-w-0 flex-1 flex-col", !l.visible && "opacity-40")}>
+              <span className="truncate">{l.name}</span>
+              {(() => {
+                const t = layerTiming(project, l);
+                return t ? (
+                  <span className="truncate font-mono text-[10px] leading-tight text-muted-foreground" title="On screen from – to">
+                    {formatTime(t.in)}–{formatTime(t.out)}
+                  </span>
+                ) : null;
+              })()}
+            </span>
             <button
               onClick={(e) => {
                 e.stopPropagation();
