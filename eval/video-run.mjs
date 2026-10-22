@@ -70,6 +70,62 @@ function browserRssMB() {
   }
 }
 
+// ---------------------------------------------------------------- motion
+// The generator's entrances: 0.5 s, cubic-bezier(0.2, 0.8, 0.2, 1), opacity
+// 0 → 1, plus one of these starting offsets (video px) or scale.
+const ENTER = 0.5;
+const START = { fade: {}, "slide-up": { dy: 48 }, "slide-left": { dx: 64 }, scale: { scale: 0.82 } };
+function bezier([x1, y1, x2, y2], x) {
+  if (x <= 0) return 0;
+  if (x >= 1) return 1;
+  const f = (a, b, t) => 3 * a * t * (1 - t) ** 2 + 3 * b * t * t * (1 - t) + t ** 3;
+  let lo = 0, hi = 1;
+  for (let i = 0; i < 30; i++) { const m = (lo + hi) / 2; if (f(x1, x2, m) < x) lo = m; else hi = m; }
+  return f(y1, y2, (lo + hi) / 2);
+}
+const EASE = { linear: [0, 0, 1, 1], ease: [0.25, 0.1, 0.25, 1], "ease-in": [0.42, 0, 1, 1], "ease-out": [0, 0, 0.58, 1], "ease-in-out": [0.42, 0, 0.58, 1], standard: [0.4, 0, 0.2, 1], decelerate: [0, 0, 0.2, 1], "out-cubic": [0.33, 1, 0.68, 1], "out-quint": [0.22, 1, 0.36, 1], "out-expo": [0.16, 1, 0.3, 1] };
+function truthAt(type, t0, t) {
+  const p = bezier([0.2, 0.8, 0.2, 1], (t - t0) / ENTER);
+  const s = START[type] ?? {};
+  return { dx: (s.dx ?? 0) * (1 - p), dy: (s.dy ?? 0) * (1 - p), scale: 1 - (1 - (s.scale ?? 1)) * (1 - p), opacity: p };
+}
+function predAt(keys, t) {
+  const rest = { dx: 0, dy: 0, scale: 1, opacity: 1 };
+  if (!keys?.length) return rest;
+  if (t <= keys[0].t) return keys[0];
+  for (let i = 0; i + 1 < keys.length; i++) {
+    const a = keys[i], b = keys[i + 1];
+    if (t > b.t) continue;
+    const p = bezier(EASE[a.easing ?? "linear"], (t - a.t) / Math.max(1e-6, b.t - a.t));
+    const m = (u, v) => u + (v - u) * p;
+    return { dx: m(a.dx, b.dx), dy: m(a.dy, b.dy), scale: m(a.scale, b.scale), opacity: m(a.opacity, b.opacity) };
+  }
+  return keys[keys.length - 1];
+}
+/** Same rule as describeMotion() in src/lib/video/motion.ts. */
+function classify(keys, size) {
+  const k = keys?.find((x, i) => x.opacity < 0.05 && keys[i + 1]?.opacity > 0.95);
+  if (!k) return "none";
+  // A scale change with only a small shift is a scale-in (the shift comes from where it scales from).
+  if (Math.abs(k.scale - 1) >= 0.06 && Math.hypot(k.dx, k.dy) <= 0.25 * size) return "scale";
+  if (Math.abs(k.dy) >= 12 && Math.abs(k.dy) >= Math.abs(k.dx)) return k.dy > 0 ? "slide-up" : "slide-down";
+  if (Math.abs(k.dx) >= 12) return k.dx > 0 ? "slide-left" : "slide-right";
+  if (Math.abs(k.scale - 1) >= 0.06) return "scale";
+  return "fade";
+}
+/** Entrance accuracy for one matched layer, or null when the entrance overlaps the scene's own crossfade. */
+function scoreMotion(truth, keys, scene, frameW, size) {
+  const t0 = truth.in - ENTER / 2;
+  if (scene.fadeIn && t0 < scene.start + 0.6) return null;
+  const path = [], opacity = [];
+  for (const u of [0.2, 0.4, 0.6, 0.8]) {
+    const t = t0 + u * ENTER, a = truthAt(truth.motion, t0, t), b = predAt(keys, t);
+    path.push(Math.hypot(a.dx - b.dx, a.dy - b.dy) / frameW);
+    opacity.push(Math.abs(a.opacity - b.opacity));
+  }
+  return { truth: truth.motion, pred: classify(keys, size), typeOk: classify(keys, size) === truth.motion, pathErr: Math.max(...path), opacityErr: mean(opacity), keys: keys?.slice(0, 2) };
+}
+
 function scoreVideo(gt, pred) {
   const fps = gt.fps;
   // --- cuts: a cut matches within 2 frames, a fade within half its length
@@ -86,7 +142,9 @@ function scoreVideo(gt, pred) {
   // --- layers: each answer-key scene is compared with the predicted scene it overlaps most
   const texts = [];
   const objects = [];
-  for (const g of gt.scenes) {
+  const motion = [];
+  for (const [gi, g] of gt.scenes.entries()) {
+    g.fadeIn = gi > 0 && gt.cuts[gi - 1]?.type === "fade";
     const ps = pred.scenes.reduce((a, b) => (overlap(b.start, b.end, g.start, g.end) > overlap(a.start, a.end, g.start, g.end) ? b : a));
     for (const t of g.texts) {
       const hits = ps.texts.filter((p) => inter(p.box, t.box) / area(p.box) >= 0.5 || inter(p.box, t.box) / area(t.box) >= 0.5);
@@ -94,6 +152,7 @@ function scoreVideo(gt, pred) {
       const acc = charAcc(t.text, joined);
       const best = [...hits].sort((p, q) => inter(q.box, t.box) - inter(p.box, t.box))[0];
       texts.push({ text: t.text, role: t.role, motion: t.motion, found: acc >= 0.8, acc, pred: joined, inErr: best ? Math.abs(best.in - t.in) : null, outErr: best ? Math.abs(best.out - t.out) : null });
+      if (best && acc >= 0.8) { const m = scoreMotion(t, best.motion, g, gt.width, Math.max(best.box.width, best.box.height)); if (m) motion.push({ layer: "text", ...m }); }
     }
     const taken = new Set();
     for (const o of g.objects) {
@@ -102,15 +161,17 @@ function scoreVideo(gt, pred) {
       const found = bestIoU >= 0.5;
       if (found) taken.add(best);
       objects.push({ kind: o.kind, found, inErr: found ? Math.abs(ps.objects[best].in - o.in) : null, outErr: found ? Math.abs(ps.objects[best].out - o.out) : null });
+      if (found) { const m = scoreMotion(o, ps.objects[best].motion, g, gt.width, Math.max(ps.objects[best].box.width, ps.objects[best].box.height)); if (m) motion.push({ layer: o.kind, ...m }); }
     }
   }
-  return { cuts, falseCuts, texts, objects, scenesOk: pred.scenes.length === gt.scenes.length };
+  return { cuts, falseCuts, texts, objects, motion, scenesOk: pred.scenes.length === gt.scenes.length };
 }
 
 function summarize(rows) {
   const C = rows.flatMap((r) => r.score.cuts);
   const T = rows.flatMap((r) => r.score.texts);
   const O = rows.flatMap((r) => r.score.objects);
+  const M = rows.flatMap((r) => r.score.motion);
   const timing = [...T, ...O].flatMap((x) => (x.inErr == null ? [] : [x.inErr, x.outErr]));
   const textTiming = T.flatMap((x) => (x.inErr == null ? [] : [x.inErr, x.outErr]));
   return {
@@ -126,6 +187,11 @@ function summarize(rows) {
     textTimingMedian: median(textTiming),
     textTimingWithin025: mean(textTiming.map((e) => (e <= 0.25 ? 1 : 0))),
     layerTimingWithin025: mean(timing.map((e) => (e <= 0.25 ? 1 : 0))),
+    motionTypeAccuracy: mean(M.map((m) => (m.typeOk ? 1 : 0))),
+    motionPathWithin2pct: mean(M.map((m) => (m.pathErr <= 0.02 ? 1 : 0))),
+    motionPathMedian: median(M.map((m) => m.pathErr)),
+    motionOpacityErr: mean(M.map((m) => m.opacityErr)),
+    motionLayers: M.length,
     speedRatio: mean(rows.map((r) => r.seconds / r.duration)),
     worstSpeedRatio: Math.max(...rows.map((r) => r.seconds / r.duration)),
     peakMemoryMB: Math.max(...rows.map((r) => r.peakMB)),
@@ -160,7 +226,9 @@ for (const item of index.videos.slice(0, LIMIT)) {
     const strip = (s) => (x) => {
       const k = r.width / s.analysis.metadata.width;
       const b = x.box;
-      return { text: x.text, label: x.label, kind: x.kind, role: x.role, box: { x: b.x * k, y: b.y * k, width: b.width * k, height: b.height * k }, ...s.timing[x.id] };
+      const tm = s.timing[x.id] ?? {};
+      const motion = tm.motion?.map((m) => ({ ...m, dx: m.dx * k, dy: m.dy * k }));
+      return { text: x.text, label: x.label, kind: x.kind, role: x.role, box: { x: b.x * k, y: b.y * k, width: b.width * k, height: b.height * k }, in: tm.in, out: tm.out, motion };
     };
     return {
       duration: r.duration,
@@ -199,6 +267,10 @@ const lines = [
   ["Objects found per scene", pct(overall.objectRecall), "–", null],
   ["Text in/out within 0.25 s", pct(overall.textTimingWithin025), "most", null],
   ["Text in/out error (median)", `${overall.textTimingMedian.toFixed(2)} s`, "≤ 0.25 s", overall.textTimingMedian <= 0.25],
+  ["Entrance type correct", `${pct(overall.motionTypeAccuracy)} of ${overall.motionLayers}`, "–", null],
+  ["Motion path within 2% of width", pct(overall.motionPathWithin2pct), "most", null],
+  ["Motion path error (median)", pct(overall.motionPathMedian), "≤ 2%", overall.motionPathMedian <= 0.02],
+  ["Opacity error (mean)", overall.motionOpacityErr.toFixed(2), "–", null],
   ["Processing time ÷ video length", `${overall.speedRatio.toFixed(2)}× (worst ${overall.worstSpeedRatio.toFixed(2)}×)`, "≤ 3×", overall.worstSpeedRatio <= 3],
   ["Peak browser memory", `${overall.peakMemoryMB} MB (idle ${overall.idleMemoryMB})`, "< 1500 MB", overall.peakMemoryMB < 1500],
 ];

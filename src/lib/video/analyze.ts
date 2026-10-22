@@ -5,13 +5,14 @@ import { buildScene } from "../vision/reconstruct";
 import { boxIoU, loadImage, makeCanvas, release } from "../vision/raster";
 import { runPipeline } from "../vision/pipeline";
 import { count, detectCuts, edges, persistence, shrink, type Cut, type Mini } from "./cuts";
+import { fitMotion, trackLayer } from "./motion";
 import { captureFrames, closeVideo, frameAt, grabFrame, grayAt, openVideo, type FrameSet } from "./frames";
 
 export const VIDEO_STEPS = [
   { id: "frames", label: "Reading frames" },
   { id: "scenes", label: "Finding scenes" },
   { id: "keyframes", label: "Breaking down each scene" },
-  { id: "timing", label: "Timing every layer" },
+  { id: "timing", label: "Timing and motion of every layer" },
 ] as const;
 
 export type VideoStepId = (typeof VIDEO_STEPS)[number]["id"];
@@ -24,7 +25,7 @@ export interface VideoBreakdown {
   cuts: Cut[];
   scenes: VideoScene[];
   /** seconds spent in each stage */
-  timings: Record<"decode" | "cuts" | "keyframes" | "timing" | "total", number>;
+  timings: Record<"decode" | "cuts" | "keyframes" | "timing" | "motion" | "total", number>;
   /** milliseconds per still-image step, summed over all keyframes */
   stepMs: Record<string, number>;
 }
@@ -46,7 +47,7 @@ const MIN_SCENE = 0.7; // seconds
 
 export async function analyzeVideo(src: string, fileName: string, opt: VideoOptions): Promise<VideoBreakdown> {
   const t0 = now();
-  const timings = { decode: 0, cuts: 0, keyframes: 0, timing: 0, total: 0 };
+  const timings = { decode: 0, cuts: 0, keyframes: 0, timing: 0, motion: 0, total: 0 };
   const video = await openVideo(src);
   if (video.duration > MAX_VIDEO_SECONDS + 0.5) {
     closeVideo(video);
@@ -144,6 +145,21 @@ export async function analyzeVideo(src: string, fileName: string, opt: VideoOpti
       const b = x.box;
       timing[x.id] = visibility(fs, { x: b.x * toVideo, y: b.y * toVideo, width: b.width * toVideo, height: b.height * toVideo }, start, end, seenAt.get(x.id)!);
     }
+    timings.timing += now() - t;
+
+    // Motion: follow each layer against the scene's clean background.
+    t = now();
+    const toFrames = fs.w / fs.width; // video px -> analysis raster px
+    const bg = await grayImage(plate, fs.w, fs.h);
+    for (const x of [...analysis.texts, ...analysis.objects]) {
+      if ("kind" in x && x.kind === "face") continue;
+      const k = toVideo * toFrames;
+      const box = { x: x.box.x * k, y: x.box.y * k, width: x.box.width * k, height: x.box.height * k };
+      const motion = fitMotion(trackLayer(fs, bg, box, start, end, seenAt.get(x.id)!), end, 1 / k, Math.max(box.width, box.height));
+      if (motion) timing[x.id].motion = motion;
+    }
+    timings.motion += now() - t;
+    t = now();
     scenes.push({
       start,
       end,
@@ -270,4 +286,16 @@ async function toJpeg(src: string): Promise<string> {
   const url = canvas.toDataURL("image/jpeg", 0.9);
   release(canvas);
   return url;
+}
+
+/** An image as greyscale at the given size (matching the frame set). */
+async function grayImage(src: string, w: number, h: number): Promise<Uint8Array> {
+  const img = await loadImage(src);
+  const { canvas, ctx } = makeCanvas(w, h);
+  ctx.drawImage(img, 0, 0, w, h);
+  const d = ctx.getImageData(0, 0, w, h).data;
+  release(canvas);
+  const g = new Uint8Array(w * h);
+  for (let p = 0, i = 0; p < g.length; p++, i += 4) g[p] = (d[i] * 77 + d[i + 1] * 150 + d[i + 2] * 29) >> 8;
+  return g;
 }

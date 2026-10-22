@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { ChevronDown, Download, Film, Loader2, Package } from "lucide-react";
+import { Captions, ChevronDown, Download, Film, Loader2, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { assetsZip, EXPORT_FORMATS, exportProject, videoLayersZip, type ExportFormat } from "@/lib/export";
+import { assetsZip, EXPORT_FORMATS, exportProject, videoCaptions, videoLayersZip, type ExportFormat } from "@/lib/export";
 import { useApp } from "@/lib/store/app";
 import type { Project } from "@/lib/types";
 import { downloadBlob } from "@/lib/utils";
@@ -19,10 +19,16 @@ export function ExportMenu({ project, compact }: { project: Project; compact?: b
   const [busy, setBusy] = useState<string | null>(null);
   const logExport = useApp((s) => s.logExport);
 
-  const run = async (format: ExportFormat | "assets-zip" | "video-layers") => {
+  const run = async (format: ExportFormat | "assets-zip" | "video-layers" | "captions-srt" | "captions-vtt") => {
     setBusy(format);
     try {
-      if (format === "video-layers") {
+      if (format === "captions-srt" || format === "captions-vtt") {
+        const ext = format === "captions-srt" ? "srt" : "vtt";
+        const blob = videoCaptions(project, ext);
+        const fileName = `${project.name.replace(/\W+/g, "-").toLowerCase()}.${ext}`;
+        downloadBlob(blob, fileName);
+        logExport({ projectId: project.id, projectName: project.name, format, fileName, size: blob.size });
+      } else if (format === "video-layers") {
         const blob = await videoLayersZip(project);
         const fileName = `${project.name.replace(/\W+/g, "-").toLowerCase()}-video-layers.zip`;
         downloadBlob(blob, fileName);
@@ -59,6 +65,12 @@ export function ExportMenu({ project, compact }: { project: Project; compact?: b
             <DropdownMenuLabel>Whole video</DropdownMenuLabel>
             <DropdownMenuItem onSelect={() => run("video-layers")}>
               <Film /> Layers pack: every scene, with timeline (.zip)
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => run("captions-srt")}>
+              <Captions /> On-screen text as captions (.srt)
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => run("captions-vtt")}>
+              <Captions /> On-screen text as captions (.vtt)
             </DropdownMenuItem>
             <DropdownMenuSeparator />
           </>

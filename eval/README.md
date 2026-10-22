@@ -45,7 +45,12 @@ EVAL_SET=heldout node video-run.mjs my-change
 ```
 
 Scores: hard cuts found within 2 frames, crossfades within 0.3 s, false cuts,
-text lines found per scene, layer in/out timing error, processing time as a
-multiple of video length, and peak memory of the browser running the test.
+text lines found per scene, layer in/out timing error, entrance motion (type
+named correctly; path error as a share of frame width, sampled through the
+entrance; opacity error), processing time as a multiple of video length, and
+peak memory of the browser running the test. Motion truth comes from the
+generator's animation spec (0.5 s, cubic-bezier(0.2, 0.8, 0.2, 1), slide 48 px
+up or 64 px left, or scale from 0.82); entrances that overlap the scene's own
+crossfade are left out.
 The eval plays the WebM copies because the open-source Chromium used here has
 no H.264 decoder; the MP4 copies are for checking in Chrome or Safari.

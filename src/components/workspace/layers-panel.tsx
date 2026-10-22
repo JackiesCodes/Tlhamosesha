@@ -28,7 +28,7 @@ import { GOOGLE_FONTS } from "@/lib/export";
 import { useEditor } from "@/lib/store/editor";
 import type { SceneLayer, TextLayer } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { formatTime, layerTiming } from "@/lib/video/project";
+import { describeMotion, formatTime, layerTiming } from "@/lib/video/project";
 
 const TYPE_ICON = { background: Wallpaper, image: ImageIcon, text: Type, shape: Square } as const;
 
@@ -65,9 +65,11 @@ export function LayerList({ className }: { className?: string }) {
               <span className="truncate">{l.name}</span>
               {(() => {
                 const t = layerTiming(project, l);
+                const motion = describeMotion(t, Math.max(l.width, l.height));
                 return t ? (
-                  <span className="truncate font-mono text-[10px] leading-tight text-muted-foreground" title="On screen from – to">
-                    {formatTime(t.in)}–{formatTime(t.out)}
+                  <span className="truncate text-[10px] leading-tight text-muted-foreground" title="On screen from – to, and how it moves">
+                    <span className="font-mono">{formatTime(t.in)}–{formatTime(t.out)}</span>
+                    {motion && ` · ${motion}`}
                   </span>
                 ) : null;
               })()}

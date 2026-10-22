@@ -4,7 +4,7 @@ import { create } from "zustand";
 import type { Project, Scene, SceneLayer } from "../types";
 import { syncedScenes } from "../video/project";
 
-export type PreviewMode = "split" | "overlay" | "difference";
+export type PreviewMode = "split" | "overlay" | "difference" | "play";
 export type WorkspaceTab = "elements" | "layers" | "typography" | "colors" | "layout" | "metadata" | "dna";
 export type WorkspaceMode = "breakdown" | "reconstruct";
 

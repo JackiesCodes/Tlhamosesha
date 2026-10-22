@@ -228,10 +228,40 @@ export interface Scene {
   layers: SceneLayer[];
 }
 
+/**
+ * One keyframe of a layer's movement, relative to where the layer rests in
+ * the scene (its box). Offsets are in scene pixels; scale is about the box
+ * centre. `easing` applies to the stretch from this keyframe to the next, as
+ * in CSS and the Web Animations API.
+ */
+export interface MotionKey {
+  /** seconds into the video */
+  t: number;
+  dx: number;
+  dy: number;
+  scale: number;
+  opacity: number;
+  easing?: EasingName;
+}
+
+export type EasingName =
+  | "linear"
+  | "ease"
+  | "ease-in"
+  | "ease-out"
+  | "ease-in-out"
+  | "standard"
+  | "decelerate"
+  | "out-cubic"
+  | "out-quint"
+  | "out-expo";
+
 /** Seconds into the video when a layer is half-way in, and half-way out. */
 export interface LayerTiming {
   in: number;
   out: number;
+  /** How the layer enters and leaves, when it animates. */
+  motion?: MotionKey[];
 }
 
 export interface VideoScene {

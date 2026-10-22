@@ -1,6 +1,8 @@
 // Scene exporters: PNG, JPG, SVG, PDF and design-tool JSON interchange.
 import { hexToRgb } from "./color";
 import type { Project, Scene, SceneLayer, TextLayer } from "./types";
+import { captionCues, toSrt, toVtt } from "./video/captions";
+import { cssEasing } from "./video/easing";
 import { syncedScenes } from "./video/project";
 import { loadImage, makeCanvas } from "./vision/raster";
 
@@ -361,7 +363,7 @@ export async function videoLayersZip(p: Project) {
     format: "revvisual-video-layers",
     version: 1,
     video: { fileName: p.video.fileName, width: p.video.width, height: p.video.height, duration: p.video.duration },
-    note: "Times are in seconds. Layer boxes are in scene pixels; multiply by videoScale for video pixels.",
+    note: "Times are in seconds. Layer boxes and motion offsets are in scene pixels; multiply by videoScale for video pixels. Motion keyframes are relative to the layer box (scale about its centre); each keyframe's easing (CSS) applies until the next keyframe.",
     scenes: [] as unknown[],
   };
   for (const [i, s] of scenes.entries()) {
@@ -372,6 +374,8 @@ export async function videoLayersZip(p: Project) {
     dir.file("rebuilt.png", await new Promise<Blob>((res) => render.toBlob((b) => res(b!), "image/png")));
     const layers = s.scene.layers.map((l, k) => {
       const timing = l.sourceId ? s.timing[l.sourceId] : undefined;
+      // Keyframes are relative to the layer's box; easing applies to the stretch that starts at a keyframe.
+      const motion = timing?.motion?.map((m) => ({ ...m, easing: m.easing ? cssEasing(m.easing) : undefined }));
       const base = {
         id: l.id,
         name: l.name,
@@ -385,6 +389,7 @@ export async function videoLayersZip(p: Project) {
         visible: l.visible,
         in: +(timing?.in ?? s.start).toFixed(3),
         out: +(timing?.out ?? s.end).toFixed(3),
+        motion,
       };
       if ("src" in l) {
         const file = `${l.type === "background" ? "background" : `layers/${String(k).padStart(2, "0")}-${slug(l.name)}`}.${ext(l.src)}`;
@@ -412,4 +417,10 @@ export async function videoLayersZip(p: Project) {
   }
   zip.file("timeline.json", JSON.stringify(timeline, null, 2));
   return zip.generateAsync({ type: "blob" });
+}
+
+/** Video projects: every line of on-screen text with its timing, as SRT or WebVTT. */
+export function videoCaptions(p: Project, format: "srt" | "vtt"): Blob {
+  const cues = captionCues(p);
+  return new Blob([format === "srt" ? toSrt(cues) : toVtt(cues)], { type: format === "srt" ? "application/x-subrip" : "text/vtt" });
 }

@@ -173,7 +173,7 @@ export function SceneView({
   );
 }
 
-function LayerContent({ layer: l, editing, onCommitText }: { layer: SceneLayer; editing: boolean; onCommitText: (t: string) => void }) {
+export function LayerContent({ layer: l, editing, onCommitText }: { layer: SceneLayer; editing: boolean; onCommitText: (t: string) => void }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (editing && ref.current) {

@@ -7,7 +7,7 @@ import { PageHeader } from "@/components/common/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { assetsZip, type ExportFormat, exportProject, videoLayersZip } from "@/lib/export";
+import { assetsZip, type ExportFormat, exportProject, videoCaptions, videoLayersZip } from "@/lib/export";
 import { useApp } from "@/lib/store/app";
 import { allProjects, getProject } from "@/lib/store/db";
 import type { DetectedObject, Project } from "@/lib/types";
@@ -38,6 +38,10 @@ export default function DownloadsPage() {
     if (!p) return alert("That project no longer exists.");
     if (format === "assets-zip") downloadBlob(await assetsZip(p), `${p.name}-assets.zip`);
     else if (format === "video-layers") downloadBlob(await videoLayersZip(p), `${p.name}-video-layers.zip`);
+    else if (format === "captions-srt" || format === "captions-vtt") {
+      const ext = format === "captions-srt" ? "srt" : "vtt";
+      downloadBlob(videoCaptions(p, ext), `${p.name}.${ext}`);
+    }
     else if (format !== "asset") {
       const { blob, fileName } = await exportProject(p, format as ExportFormat);
       downloadBlob(blob, fileName);
