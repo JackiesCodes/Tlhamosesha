@@ -164,6 +164,7 @@ export async function analyzeVideo(src: string, fileName: string, opt: VideoOpti
       start,
       end,
       transition: s === 0 ? null : cuts[s - 1].type,
+      transitionLength: s === 0 ? undefined : +cuts[s - 1].length.toFixed(3),
       keyframes: keys.map((k) => k.t),
       // Analysed losslessly; stored as JPEG, which is a fraction of the size.
       original: await toJpeg(main.original),

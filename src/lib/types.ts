@@ -188,6 +188,8 @@ interface BaseLayer {
   locked: boolean;
   /** Link back to the analysis element it came from. */
   sourceId?: string;
+  /** Video scenes: when the layer is on screen and how it moves. Absent means the whole scene, at rest. */
+  timing?: LayerTiming;
 }
 
 interface RasterLayer<T extends "image" | "background"> extends BaseLayer {
@@ -269,6 +271,8 @@ export interface VideoScene {
   end: number;
   /** How this scene begins; null for the first scene. */
   transition: "cut" | "fade" | null;
+  /** Length of a crossfade into this scene, in seconds (centred on `start`). */
+  transitionLength?: number;
   /** Seconds of the frames that were broken down. */
   keyframes: number[];
   original: string;

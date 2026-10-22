@@ -18,7 +18,7 @@ export interface ExportRecord {
   id: string;
   projectId: string;
   projectName: string;
-  format: ExportFormat | "assets-zip" | "video-layers" | "captions-srt" | "captions-vtt" | "asset";
+  format: ExportFormat | "assets-zip" | "video-layers" | "captions-srt" | "captions-vtt" | "video-mp4" | "video-webm" | "lottie" | "asset";
   fileName: string;
   size: number;
   at: string;

@@ -26,8 +26,10 @@ import { Slider } from "@/components/ui/slider";
 import { Tooltip } from "@/components/ui/tooltip";
 import { GOOGLE_FONTS } from "@/lib/export";
 import { useEditor } from "@/lib/store/editor";
-import type { SceneLayer, TextLayer } from "@/lib/types";
+import type { EasingName, LayerTiming, Project, SceneLayer, TextLayer } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { EASING_LABEL } from "@/lib/video/easing";
+import { applyAnimation, readAnimation, retime, type AnimationSettings, type EntrancePreset } from "@/lib/video/presets";
 import { describeMotion, formatTime, layerTiming } from "@/lib/video/project";
 
 const TYPE_ICON = { background: Wallpaper, image: ImageIcon, text: Type, shape: Square } as const;
@@ -169,6 +171,8 @@ export function LayerInspector({ className }: { className?: string }) {
         </div>
       </Section>
 
+      {project.video && layer.type !== "background" && <AnimationProps layer={layer} project={project} />}
+
       {layer.type === "text" && <TextProps layer={layer} />}
 
       {(layer.type === "image" || layer.type === "background") && (
@@ -190,6 +194,87 @@ export function LayerInspector({ className }: { className?: string }) {
         </Section>
       )}
     </div>
+  );
+}
+
+const ENTRANCES: { id: EntrancePreset; label: string }[] = [
+  { id: "none", label: "Appears (no animation)" },
+  { id: "fade", label: "Fades in" },
+  { id: "slide-up", label: "Slides up" },
+  { id: "slide-down", label: "Slides down" },
+  { id: "slide-left", label: "Slides in from the right" },
+  { id: "slide-right", label: "Slides in from the left" },
+  { id: "scale", label: "Scales in" },
+];
+
+function AnimationProps({ layer, project }: { layer: SceneLayer; project: Project }) {
+  const updateLayer = useEditor((s) => s.updateLayer);
+  const scene = project.video!.scenes[project.video!.active];
+  const timing = layer.timing ?? { in: scene.start, out: scene.end };
+  const a = readAnimation(timing, Math.max(layer.width, layer.height), Math.round(project.scene.height * 0.05));
+  const setTiming = (t: LayerTiming) => updateLayer(layer.id, { timing: t });
+  const apply = (patch: Partial<AnimationSettings>) => setTiming(applyAnimation(timing, { ...a, ...patch }));
+  const select = "h-8 w-full rounded-lg border border-white/[0.08] bg-surface-sunken px-2 text-xs text-white";
+  const easingSelect = (value: EasingName, onChange: (e: EasingName) => void, label: string) => (
+    <select value={value} onChange={(e) => onChange(e.target.value as EasingName)} className={select} aria-label={label}>
+      {(Object.keys(EASING_LABEL) as EasingName[]).map((e) => (
+        <option key={e} value={e}>
+          {EASING_LABEL[e]}
+        </option>
+      ))}
+    </select>
+  );
+  return (
+    <Section title="Animation">
+      <div className="grid grid-cols-2 gap-2">
+        <NumField
+          label="In"
+          suffix="s"
+          decimals={2}
+          step={0.05}
+          value={timing.in}
+          onChange={(v) => setTiming(retime(timing, "in", Math.min(Math.max(v, scene.start), timing.out - 0.1) - timing.in))}
+        />
+        <NumField
+          label="Out"
+          suffix="s"
+          decimals={2}
+          step={0.05}
+          value={timing.out}
+          onChange={(v) => setTiming(retime(timing, "out", Math.max(Math.min(v, scene.end), timing.in + 0.1) - timing.out))}
+        />
+      </div>
+      <div className="mt-3 space-y-2">
+        <select value={a.entrance} onChange={(e) => apply({ entrance: e.target.value as EntrancePreset })} className={select} aria-label="Entrance">
+          {ENTRANCES.map((x) => (
+            <option key={x.id} value={x.id}>
+              {x.label}
+            </option>
+          ))}
+        </select>
+        {a.entrance !== "none" && (
+          <div className="grid grid-cols-2 gap-2">
+            <NumField label="Dur" suffix="s" decimals={2} step={0.05} min={0.05} max={3} value={a.enterDuration} onChange={(v) => apply({ enterDuration: v })} />
+            {a.entrance.startsWith("slide") ? (
+              <NumField label="Dist" suffix="px" min={1} value={a.distance} onChange={(v) => apply({ distance: v })} />
+            ) : (
+              <span />
+            )}
+            <div className="col-span-2">{easingSelect(a.enterEasing, (e) => apply({ enterEasing: e }), "Entrance easing")}</div>
+          </div>
+        )}
+        <select value={a.exit} onChange={(e) => apply({ exit: e.target.value as "none" | "fade" })} className={select} aria-label="Exit">
+          <option value="none">Leaves at once</option>
+          <option value="fade">Fades out</option>
+        </select>
+        {a.exit === "fade" && (
+          <div className="grid grid-cols-2 gap-2">
+            <NumField label="Dur" suffix="s" decimals={2} step={0.05} min={0.05} max={3} value={a.exitDuration} onChange={(v) => apply({ exitDuration: v })} />
+            {easingSelect(a.exitEasing, (e) => apply({ exitEasing: e }), "Exit easing")}
+          </div>
+        )}
+      </div>
+    </Section>
   );
 }
 
@@ -280,6 +365,7 @@ function NumField({
   max,
   step = 1,
   suffix,
+  decimals = 1,
 }: {
   label: string;
   value: number;
@@ -288,13 +374,14 @@ function NumField({
   max?: number;
   step?: number;
   suffix?: string;
+  decimals?: number;
 }) {
   return (
     <label className="flex h-8 items-center gap-1.5 rounded-lg border border-white/[0.08] bg-surface-sunken/80 px-2 focus-within:border-brand/40">
       <span className="w-6 shrink-0 text-[10px] font-semibold text-muted-foreground">{label}</span>
       <input
         type="number"
-        value={Math.round(value * 10) / 10}
+        value={Math.round(value * 10 ** decimals) / 10 ** decimals}
         min={min}
         max={max}
         step={step}

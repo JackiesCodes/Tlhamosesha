@@ -89,7 +89,7 @@ const FAQ = [
   },
   {
     q: "Does it work on videos?",
-    a: "Yes, for motion-graphic videos up to 60 seconds, such as ads, promos and social reels. RevVisual splits the video into scenes, breaks each scene down into editable layers, and works out when every layer appears, how it moves in and out (slides, fades, scaling, with their easing) and when it leaves. You can play the result back, export every scene's layers with a timeline, and export the on-screen text as captions (SRT or WebVTT). Live-action footage stays as one layer; only titles, logos and captions on top are pulled out. A video takes about one to three times its length to analyse.",
+    a: "Yes, for motion-graphic videos up to 60 seconds, such as ads, promos and social reels. RevVisual splits the video into scenes, breaks each scene down into editable layers, and works out when every layer appears, how it moves in and out (slides, fades, scaling, with their easing) and when it leaves. You can play the result back, retime and retype layers on a timeline, and export the rebuilt video as MP4 or WebM (with the original soundtrack if you add the source file), as a Lottie animation, as every scene's layers with a timeline, or the on-screen text as captions (SRT or WebVTT). Live-action footage stays as one layer; only titles, logos and captions on top are pulled out. A video takes about one to three times its length to analyse.",
   },
   {
     q: "Do I need an account?",

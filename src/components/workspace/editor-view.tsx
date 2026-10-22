@@ -9,6 +9,7 @@ import type { Project } from "@/lib/types";
 import { uid } from "@/lib/utils";
 import { LayerInspector, LayerList } from "./layers-panel";
 import { SceneView, useFitScale } from "./scene-view";
+import { Timeline } from "./timeline";
 
 export function EditorView({ project }: { project: Project }) {
   const [zoom, setZoom] = useState(1);
@@ -16,6 +17,7 @@ export function EditorView({ project }: { project: Project }) {
   const { width: W, height: H } = project.scene;
   const scale = useFitScale(frame, W, H, zoom);
   const addLayer = useEditor((s) => s.addLayer);
+  const time = useEditor((s) => s.time);
   const accent = project.analysis.palette.find((c) => c.role === "accent")?.hex ?? "#0A0A0A";
 
   const addText = () =>
@@ -86,9 +88,10 @@ export function EditorView({ project }: { project: Project }) {
         <div className="scrollbar-thin relative min-h-0 flex-1 overflow-auto bg-surface-sunken/60 bg-grid-faint [background-size:24px_24px]">
           <div ref={frame} className="absolute inset-8" />
           <div className="flex min-h-full min-w-full items-center justify-center p-8" style={{ width: "max-content" }}>
-            <SceneView scene={project.scene} scale={scale} interactive className="shadow-panel ring-1 ring-white/10" />
+            <SceneView scene={project.scene} scale={scale} interactive time={project.video ? time : null} className="shadow-panel ring-1 ring-white/10" />
           </div>
         </div>
+        {project.video && <Timeline project={project} />}
       </section>
 
       <aside className="panel scrollbar-thin min-h-0 overflow-y-auto p-4">

@@ -2,7 +2,7 @@
 // Workspace editor state: current project, selection, undo/redo history.
 import { create } from "zustand";
 import type { Project, Scene, SceneLayer } from "../types";
-import { syncedScenes } from "../video/project";
+import { syncedScenes, withLayerTimings } from "../video/project";
 
 export type PreviewMode = "split" | "overlay" | "difference" | "play";
 export type WorkspaceTab = "elements" | "layers" | "typography" | "colors" | "layout" | "metadata" | "dna";
@@ -18,6 +18,11 @@ interface EditorState {
   tab: WorkspaceTab;
   mode: WorkspaceMode;
   dirty: boolean;
+  /** Video scenes: the playhead, in seconds into the video; null shows layers at rest. */
+  time: number | null;
+  playing: boolean;
+  setTime: (t: number | null) => void;
+  setPlaying: (p: boolean) => void;
   setTab: (t: WorkspaceTab) => void;
   setMode: (m: WorkspaceMode) => void;
   load: (p: Project) => void;
@@ -62,9 +67,13 @@ export const useEditor = create<EditorState>()((set, get) => {
     tab: "elements",
     mode: "breakdown",
     dirty: false,
+    time: null,
+    playing: false,
+    setTime: (time) => set({ time }),
+    setPlaying: (playing) => set({ playing }),
     setTab: (tab) => set({ tab }),
     setMode: (mode) => set({ mode }),
-    load: (p) => set({ project: p, selectedId: null, highlightIds: [], past: [], future: [], dirty: false }),
+    load: (p) => set({ project: withLayerTimings(p), selectedId: null, highlightIds: [], past: [], future: [], dirty: false, time: null, playing: false }),
     switchScene: (index) => {
       const p = get().project;
       if (!p?.video || index === p.video.active || !p.video.scenes[index]) return;
@@ -83,6 +92,8 @@ export const useEditor = create<EditorState>()((set, get) => {
         past: [],
         future: [],
         dirty: true,
+        time: null,
+        playing: false,
       });
     },
     select: (id) => set({ selectedId: id }),

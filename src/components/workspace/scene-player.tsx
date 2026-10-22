@@ -53,7 +53,7 @@ export function ScenePlayer({ project, scale }: { project: Project; scale: numbe
     const els = root.current?.querySelectorAll<HTMLElement>("[data-motion]") ?? [];
     anims.current = [...els].flatMap((el) => {
       const layer = scene.layers.find((l) => l.id === el.dataset.motion);
-      const kf = frames(layer?.sourceId ? current.timing[layer.sourceId] : undefined, start, end);
+      const kf = frames(layer?.timing ?? (layer?.sourceId ? current.timing[layer.sourceId] : undefined), start, end);
       return kf ? [el.animate(kf, { duration: (end - start) * 1000, iterations: Infinity })] : [];
     });
     // A clock that runs even when no layer animates.

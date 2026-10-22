@@ -39,19 +39,23 @@ export async function renderScene(scene: Scene, opts: { scale?: number; backgrou
     ctx.globalAlpha = l.opacity;
     ctx.translate(l.x + l.width / 2, l.y + l.height / 2);
     ctx.rotate((l.rotation * Math.PI) / 180);
-    if (l.type === "image" || l.type === "background") {
-      const img = await loadImage(l.src);
-      ctx.drawImage(img, -l.width / 2, -l.height / 2, l.width, l.height);
-    } else if (l.type === "text") {
-      drawText(ctx, l);
-    } else {
-      ctx.fillStyle = l.fill;
-      roundRect(ctx, -l.width / 2, -l.height / 2, l.width, l.height, l.radius);
-      ctx.fill();
-    }
+    drawLayerContent(ctx, l, "src" in l ? await loadImage(l.src) : undefined);
     ctx.restore();
   }
   return canvas;
+}
+
+/** Draws a layer centred on the current origin (callers translate, rotate and scale first). */
+export function drawLayerContent(ctx: CanvasRenderingContext2D, l: SceneLayer, img?: CanvasImageSource) {
+  if (l.type === "image" || l.type === "background") {
+    if (img) ctx.drawImage(img, -l.width / 2, -l.height / 2, l.width, l.height);
+  } else if (l.type === "text") {
+    drawText(ctx, l);
+  } else {
+    ctx.fillStyle = l.fill;
+    roundRect(ctx, -l.width / 2, -l.height / 2, l.width, l.height, l.radius);
+    ctx.fill();
+  }
 }
 
 function drawText(ctx: CanvasRenderingContext2D, l: TextLayer) {
@@ -373,7 +377,7 @@ export async function videoLayersZip(p: Project) {
     const render = await renderScene(s.scene);
     dir.file("rebuilt.png", await new Promise<Blob>((res) => render.toBlob((b) => res(b!), "image/png")));
     const layers = s.scene.layers.map((l, k) => {
-      const timing = l.sourceId ? s.timing[l.sourceId] : undefined;
+      const timing = l.timing ?? (l.sourceId ? s.timing[l.sourceId] : undefined);
       // Keyframes are relative to the layer's box; easing applies to the stretch that starts at a keyframe.
       const motion = timing?.motion?.map((m) => ({ ...m, easing: m.easing ? cssEasing(m.easing) : undefined }));
       const base = {

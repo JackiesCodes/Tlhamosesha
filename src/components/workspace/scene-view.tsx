@@ -6,6 +6,7 @@ import { cssFontStack } from "@/lib/export";
 import { useEditor } from "@/lib/store/editor";
 import type { Scene, SceneLayer } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { layerStateAt } from "@/lib/video/project";
 
 export function useFitScale(ref: React.RefObject<HTMLElement | null>, w: number, h: number, zoom = 1) {
   const [scale, setScale] = useState(0.2);
@@ -34,12 +35,15 @@ export function SceneView({
   interactive = false,
   className,
   showHidden = false,
+  time = null,
 }: {
   scene: Scene;
   scale: number;
   interactive?: boolean;
   className?: string;
   showHidden?: boolean;
+  /** Video scenes: show each layer as it is at this moment (seconds into the video). */
+  time?: number | null;
 }) {
   const { selectedId, highlightIds, select, updateLayer, commit } = useEditor();
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -133,6 +137,13 @@ export function SceneView({
           if (!l.visible && !showHidden) return null;
           const selected = interactive && selectedId === l.id;
           const hl = highlightIds.includes(l.id) || (l.sourceId && highlightIds.includes(l.sourceId));
+          // While editing, layers that are off screen at this moment stay faintly visible so they can be picked.
+          const st = time != null && l.timing ? layerStateAt(l.timing, time) : null;
+          const shown = st ? (interactive ? Math.max(0.15, st.opacity) : st.opacity) : 1;
+          const transform =
+            [st && (st.dx || st.dy) ? `translate(${st.dx}px, ${st.dy}px)` : "", l.rotation ? `rotate(${l.rotation}deg)` : "", st && st.scale !== 1 ? `scale(${st.scale})` : ""]
+              .filter(Boolean)
+              .join(" ") || undefined;
           return (
             <div
               key={l.id}
@@ -150,8 +161,8 @@ export function SceneView({
                 top: l.y,
                 width: l.width,
                 height: l.height,
-                opacity: l.visible ? l.opacity : 0.25,
-                transform: l.rotation ? `rotate(${l.rotation}deg)` : undefined,
+                opacity: (l.visible ? l.opacity : 0.25) * shown,
+                transform,
                 outline: hl ? `${2 / scale}px solid #FFFFFF` : undefined,
                 boxShadow: hl ? `0 0 0 ${4 / scale}px #0A0A0A` : undefined,
                 outlineOffset: hl ? 2 / scale : undefined,

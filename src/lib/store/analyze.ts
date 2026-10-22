@@ -4,6 +4,7 @@ import { create } from "zustand";
 import type { Project } from "../types";
 import { uid } from "../utils";
 import { analyzeVideo, VIDEO_STEPS } from "../video/analyze";
+import { withLayerTimings } from "../video/project";
 import { PIPELINE_STEPS, runPipeline } from "../vision/pipeline";
 import { useApp, useLibrary } from "./app";
 import { storageErrorMessage } from "./db";
@@ -85,7 +86,7 @@ export const useAnalyze = create<AnalyzeState>()((set, get) => {
           });
           onStep("save", "active");
           const first = out.scenes[0];
-          project = {
+          project = withLayerTimings({
             id: uid("prj"),
             name: titleFrom(input.fileName, "Untitled video"),
             createdAt: now,
@@ -104,7 +105,7 @@ export const useAnalyze = create<AnalyzeState>()((set, get) => {
               active: 0,
               scenes: out.scenes,
             },
-          };
+          });
           const layers = out.scenes.reduce((n, s) => n + s.scene.layers.length, 0);
           summary = `${out.scenes.length} scene${out.scenes.length === 1 ? "" : "s"}, ${layers} layers.`;
         } else {

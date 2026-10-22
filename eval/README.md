@@ -54,3 +54,18 @@ up or 64 px left, or scale from 0.82); entrances that overlap the scene's own
 crossfade are left out.
 The eval plays the WebM copies because the open-source Chromium used here has
 no H.264 decoder; the MP4 copies are for checking in Chrome or Safari.
+
+### Rebuilt-video and Lottie export
+
+```bash
+node video-export-check.mjs 6    # app running on :3100
+```
+
+Uploads each test video, exports the rebuilt video through the app's dialog
+(adding a copy of the video with a test tone as the soundtrack), then checks
+the file with ffprobe (format, video and audio streams, duration) and compares
+it with the original at 4 frames per second (mean greyscale difference and
+PSNR). It also exports the Lottie from the same project, renders it with
+lottie-web at the same moments and compares it with the rebuilt video, which
+checks that keyframes and easing survived the conversion.
+

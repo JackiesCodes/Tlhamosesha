@@ -11,6 +11,7 @@ import { assetsZip, type ExportFormat, exportProject, videoCaptions, videoLayers
 import { useApp } from "@/lib/store/app";
 import { allProjects, getProject } from "@/lib/store/db";
 import type { DetectedObject, Project } from "@/lib/types";
+import { exportLottie } from "@/lib/video/lottie";
 import { syncedScenes } from "@/lib/video/project";
 import { downloadBlob, downloadDataUrl, formatBytes, timeAgo } from "@/lib/utils";
 
@@ -38,6 +39,7 @@ export default function DownloadsPage() {
     if (!p) return alert("That project no longer exists.");
     if (format === "assets-zip") downloadBlob(await assetsZip(p), `${p.name}-assets.zip`);
     else if (format === "video-layers") downloadBlob(await videoLayersZip(p), `${p.name}-video-layers.zip`);
+    else if (format === "lottie") downloadBlob(await exportLottie(p), `${p.name}-lottie.json`);
     else if (format === "captions-srt" || format === "captions-vtt") {
       const ext = format === "captions-srt" ? "srt" : "vtt";
       downloadBlob(videoCaptions(p, ext), `${p.name}.${ext}`);
@@ -139,7 +141,13 @@ export default function DownloadsPage() {
                         {e.projectName} · {formatBytes(e.size)} · {timeAgo(e.at)}
                       </div>
                     </div>
-                    {e.format !== "asset" && (
+                    {e.format === "video-mp4" || e.format === "video-webm" ? (
+                      <Button variant="ghost" size="sm" asChild>
+                        <Link href={`/projects/${e.projectId}`}>
+                          <Download /> <span className="hidden sm:inline">Export again from the project</span>
+                        </Link>
+                      </Button>
+                    ) : e.format !== "asset" && (
                       <Button variant="ghost" size="sm" onClick={() => redownload(e.projectId, e.format)}>
                         <Download /> <span className="hidden sm:inline">Download again</span>
                       </Button>

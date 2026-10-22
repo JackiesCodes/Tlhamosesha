@@ -11,18 +11,20 @@ export interface Cue {
 
 export function captionCues(p: Project): Cue[] {
   const cues: (Cue & { ys: number[] })[] = [];
+  // From the rebuilt text layers, so edits to wording and timing carry through.
   for (const s of syncedScenes(p)) {
-    for (const t of s.analysis.texts) {
-      const tm = s.timing[t.id];
-      if (!tm) continue;
-      const start = Math.max(s.start, tm.in);
-      const end = Math.min(s.end, tm.out);
+    for (const l of s.scene.layers) {
+      if (l.type !== "text" || !l.visible || !l.text.trim()) continue;
+      const tm = l.timing ?? (l.sourceId ? s.timing[l.sourceId] : undefined);
+      const start = Math.max(s.start, tm?.in ?? s.start);
+      const end = Math.min(s.end, tm?.out ?? s.end);
       if (end - start < 0.1) continue;
+      const text = l.uppercase ? l.text.toUpperCase() : l.text;
       const same = cues.find((c) => Math.abs(c.start - start) < 0.15 && Math.abs(c.end - end) < 0.15);
       if (same) {
-        same.lines.push(t.text);
-        same.ys.push(t.box.y);
-      } else cues.push({ start, end, lines: [t.text], ys: [t.box.y] });
+        same.lines.push(text);
+        same.ys.push(l.y);
+      } else cues.push({ start, end, lines: [text], ys: [l.y] });
     }
   }
   return cues
