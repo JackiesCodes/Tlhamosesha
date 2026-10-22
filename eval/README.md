@@ -26,3 +26,24 @@ that only fits the tuning posters shows up.
 Metrics: text lines found (≥80% characters right), character accuracy, false
 text, font-size error, text colour (within ΔRGB 60), headline, objects found
 (IoU ≥ 0.5), object type, false objects, design type and seconds per poster.
+
+## Video (Phase 0 prototype)
+
+`video-generate.mjs` turns posters into short videos: each scene's text and
+objects animate in (fade, slide or scale) and some leave early, and scenes are
+joined by hard cuts or 0.6 s crossfades. Frames are rendered from known
+keyframes, so cut times, layer boxes and in/out times are exact.
+
+```bash
+node video-generate.mjs 12 101                 # -> videos/ (WebM + MP4 + answer keys)
+EVAL_SET=heldout node video-generate.mjs 12 202
+# app running on :3100; the prototype lives at /labs/video (not linked in the app)
+node video-run.mjs my-change
+EVAL_SET=heldout node video-run.mjs my-change
+```
+
+Scores: hard cuts found within 2 frames, crossfades within 0.3 s, false cuts,
+text lines found per scene, layer in/out timing error, processing time as a
+multiple of video length, and peak memory of the browser running the test.
+The eval plays the WebM copies because the open-source Chromium used here has
+no H.264 decoder; the MP4 copies are for checking in Chrome or Safari.

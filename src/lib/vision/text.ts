@@ -98,9 +98,52 @@ function dropNonGlyphs(ink: Uint8Array, W: number, H: number) {
   }
 }
 
+type OcrWorker = Awaited<ReturnType<(typeof import("tesseract.js"))["createWorker"]>>;
+type OcrMessage = { status: string; progress: number };
+let shared: { worker: Promise<OcrWorker>; users: number; idle?: ReturnType<typeof setTimeout> } | null = null;
+let ocrLog: ((m: OcrMessage) => void) | null = null;
+
+/**
+ * One OCR engine for every read, started on first use and shut down after a
+ * short idle spell. Starting Tesseract costs time and memory, and a video
+ * breakdown reads many frames in a row.
+ */
+async function withOcr<T>(fn: (worker: OcrWorker) => Promise<T>): Promise<T> {
+  if (!shared) {
+    const { createWorker } = await import("tesseract.js");
+    shared = {
+      users: 0,
+      worker: createWorker("eng", 1, {
+        // Self-hosted assets (scripts/copy-ocr-assets.mjs); absolute because the worker boots from a blob URL.
+        workerPath: `${location.origin}/ocr/worker.min.js`,
+        corePath: `${location.origin}/ocr`,
+        langPath: `${location.origin}/ocr/lang`,
+        logger: (m: OcrMessage) => ocrLog?.(m),
+      }),
+    };
+  }
+  const s = shared;
+  clearTimeout(s.idle);
+  s.users++;
+  try {
+    return await fn(await s.worker);
+  } catch (e) {
+    // A worker that failed to start or crashed is not reused.
+    if (shared === s) shared = null;
+    throw e;
+  } finally {
+    s.users--;
+    if (!s.users)
+      s.idle = setTimeout(() => {
+        if (shared === s) shared = null;
+        s.worker.then((w) => w.terminate()).catch(() => {});
+      }, 15000);
+  }
+}
+
 /** Runs Tesseract (WASM) on the image and on a local-contrast copy, merging lines. */
 export async function runOcr(img: HTMLImageElement, onProgress: Progress, extraPass = true): Promise<OcrLine[]> {
-  const { createWorker, PSM } = await import("tesseract.js");
+  const { PSM } = await import("tesseract.js");
   const W = img.naturalWidth;
   const H = img.naturalHeight;
   // Enlarge so small print has enough pixels (Tesseract wants ~20px+ letters).
@@ -120,19 +163,12 @@ export async function runOcr(img: HTMLImageElement, onProgress: Progress, extraP
     );
 
   let pass = 0;
-  const worker = await createWorker("eng", 1, {
-    // Self-hosted assets (scripts/copy-ocr-assets.mjs); absolute because the worker boots from a blob URL.
-    workerPath: `${location.origin}/ocr/worker.min.js`,
-    corePath: `${location.origin}/ocr`,
-    langPath: `${location.origin}/ocr/lang`,
-    logger: (m: { status: string; progress: number }) => {
-      if (m.status === "recognizing text") onProgress((pass + m.progress) / passes.length, `OCR ${passes[pass]?.name} pass`);
-      else onProgress(pass / passes.length, m.status);
-    },
-  });
-
   const lines: OcrLine[] = [];
-  try {
+  ocrLog = (m) => {
+    if (m.status === "recognizing text") onProgress((pass + m.progress) / passes.length, `OCR ${passes[pass]?.name} pass`);
+    else onProgress(pass / passes.length, m.status);
+  };
+  await withOcr(async (worker) => {
     for (pass = 0; pass < passes.length; pass++) {
       await worker.setParameters({ tessedit_pageseg_mode: passes[pass].psm as never });
       const { data } = await worker.recognize(passes[pass].canvas);
@@ -160,9 +196,7 @@ export async function runOcr(img: HTMLImageElement, onProgress: Progress, extraP
         }
       }
     }
-  } finally {
-    await worker.terminate();
-  }
+  }).finally(() => (ocrLog = null));
   onProgress(1);
   return lines;
 }
@@ -369,15 +403,10 @@ function sameLine(a: Box, b: Box) {
  */
 export async function readRegions(img: HTMLImageElement, boxes: Box[]): Promise<(OcrLine | null)[]> {
   if (!boxes.length) return [];
-  const { createWorker, PSM } = await import("tesseract.js");
-  const worker = await createWorker("eng", 1, {
-    workerPath: `${location.origin}/ocr/worker.min.js`,
-    corePath: `${location.origin}/ocr`,
-    langPath: `${location.origin}/ocr/lang`,
-  });
-  await worker.setParameters({ tessedit_pageseg_mode: PSM.SINGLE_LINE });
+  const { PSM } = await import("tesseract.js");
   const out: (OcrLine | null)[] = [];
-  try {
+  await withOcr(async (worker) => {
+    await worker.setParameters({ tessedit_pageseg_mode: PSM.SINGLE_LINE });
     for (const b of boxes) {
       const k = Math.min(4, Math.max(1, 140 / b.height));
       const pad = 8;
@@ -402,8 +431,6 @@ export async function readRegions(img: HTMLImageElement, boxes: Box[]): Promise<
         box: { x: b.x + (x0 - pad) / k, y: b.y + (y0 - pad) / k, width: (x1 - x0) / k, height: (y1 - y0) / k },
       });
     }
-  } finally {
-    await worker.terminate();
-  }
+  });
   return out;
 }
