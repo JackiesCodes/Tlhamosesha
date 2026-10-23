@@ -44,9 +44,30 @@ export function storageErrorMessage(e: unknown) {
   return e instanceof Error ? e.message : "Something went wrong while saving.";
 }
 
+/**
+ * A video's scene being edited lives in the project's top-level fields; its
+ * entry in video.scenes is a stale copy, so it is stored empty and refilled
+ * on read. This keeps a video project from storing one scene twice.
+ */
+function pack(p: Project): Project {
+  if (!p.video) return p;
+  const active = p.video.active;
+  const scenes = p.video.scenes.map((s, i) =>
+    i === active ? { ...s, original: "", analysis: { ...s.analysis, objects: [], backgrounds: [] }, scene: { ...s.scene, layers: [] } } : s,
+  );
+  return { ...p, video: { ...p.video, scenes } };
+}
+
+function unpack(p: Project | undefined): Project | undefined {
+  if (!p?.video) return p;
+  const active = p.video.active;
+  const scenes = p.video.scenes.map((s, i) => (i === active && !s.original ? { ...s, original: p.original, analysis: p.analysis, scene: p.scene } : s));
+  return { ...p, video: { ...p.video, scenes } };
+}
+
 export async function putProject(p: Project) {
   if (!projectsStore || !summaryStore) throw new Error("This browser doesn't support saving projects (IndexedDB is unavailable).");
-  await set(p.id, p, projectsStore);
+  await set(p.id, pack(p), projectsStore);
   await set(p.id, summarize(p), summaryStore);
   // Optional server sync, off unless the operator enables a database
   // (NEXT_PUBLIC_SERVER_SYNC=1). By default nothing about a project leaves the browser.
@@ -63,7 +84,7 @@ export async function putProject(p: Project) {
 
 export async function getProject(id: string) {
   if (!projectsStore) return undefined;
-  return get<Project>(id, projectsStore);
+  return unpack(await get<Project>(id, projectsStore));
 }
 
 export async function removeProject(id: string) {
@@ -74,7 +95,7 @@ export async function removeProject(id: string) {
 
 export async function allProjects(): Promise<Project[]> {
   if (!projectsStore) return [];
-  const list = await values<Project>(projectsStore);
+  const list = (await values<Project>(projectsStore)).map((p) => unpack(p)!);
   return list.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 }
 

@@ -139,6 +139,13 @@ export async function analyzeVideo(src: string, fileName: string, opt: VideoOpti
       }
     }
     const plate = analysis.backgrounds.find((b) => b.kind === "base")?.image ?? main.original;
+    // A video has many scenes, so keep their reference images small: the
+    // extra background studies (texture, blur, lighting…) at preview size and
+    // object crops as JPEG. The base plate and cut-outs stay full quality.
+    analysis.backgrounds = await Promise.all(
+      analysis.backgrounds.map(async (b) => (b.kind === "base" ? b : { ...b, image: await reencode(b.image, 640, "image/jpeg") })),
+    );
+    analysis.objects = await Promise.all(analysis.objects.map(async (o) => (o.crop ? { ...o, crop: await reencode(o.crop, 1200, "image/jpeg") } : o)));
     const toVideo = fs.width / analysis.metadata.width;
     const timing: Record<string, LayerTiming> = {};
     for (const x of [...analysis.texts, ...analysis.objects]) {
@@ -300,3 +307,19 @@ async function grayImage(src: string, w: number, h: number): Promise<Uint8Array>
   for (let p = 0, i = 0; p < g.length; p++, i += 4) g[p] = (d[i] * 77 + d[i + 1] * 150 + d[i + 2] * 29) >> 8;
   return g;
 }
+
+/** Re-encodes an image no larger than maxDim on its longer side. */
+async function reencode(src: string, maxDim: number, type: "image/jpeg" | "image/png"): Promise<string> {
+  const img = await loadImage(src);
+  const k = Math.min(1, maxDim / Math.max(img.naturalWidth, img.naturalHeight));
+  const { canvas, ctx } = makeCanvas(img.naturalWidth * k, img.naturalHeight * k);
+  if (type === "image/jpeg") {
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  const url = canvas.toDataURL(type, 0.85);
+  release(canvas);
+  return url;
+}
+

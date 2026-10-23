@@ -20,6 +20,8 @@ const OUT = path.join(DIR, "results", "exports");
 fs.mkdirSync(OUT, { recursive: true });
 
 const index = JSON.parse(fs.readFileSync(path.join(VID, "index.json")));
+// VIDEO_EXT=mp4 uploads the H.264 copies (needs a Chrome build with H.264, via CHROMIUM=...).
+const EXT = process.env.VIDEO_EXT ?? "webm";
 const gray = (file, w, h) =>
   execFileSync("ffmpeg", ["-loglevel", "error", "-i", file, "-vf", `fps=4,scale=${w}:${h}`, "-f", "rawvideo", "-pix_fmt", "gray", "-"], { maxBuffer: 1 << 30 });
 const probe = (file) => JSON.parse(execFileSync("ffprobe", ["-v", "error", "-show_entries", "stream=codec_type,codec_name:format=duration,format_name", "-of", "json", file]).toString());
@@ -69,10 +71,10 @@ async function compareLottie(file, videoFrames, w, h, duration) {
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM ?? "/opt/pw-browsers/chromium", args: ["--autoplay-policy=no-user-gesture-required"] });
 const rows = [];
 for (const item of index.videos.slice(0, LIMIT)) {
-  const src = path.join(VID, item.file);
+  const src = path.join(VID, item.file.replace(".webm", `.${EXT}`));
   // A copy of the video with a tone as its soundtrack, to check sound is carried over.
-  const withSound = path.join(OUT, item.file.replace(".webm", "-sound.webm"));
-  execFileSync("ffmpeg", ["-y", "-loglevel", "error", "-i", src, "-f", "lavfi", "-i", "sine=frequency=440", "-shortest", "-c:v", "copy", "-c:a", "libopus", withSound]);
+  const withSound = path.join(OUT, item.file.replace(".webm", `-sound.${EXT}`));
+  execFileSync("ffmpeg", ["-y", "-loglevel", "error", "-i", src, "-f", "lavfi", "-i", "sine=frequency=440", "-shortest", "-c:v", "copy", "-c:a", EXT === "mp4" ? "aac" : "libopus", withSound]);
 
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, acceptDownloads: true });
   const page = await ctx.newPage();
@@ -88,7 +90,7 @@ for (const item of index.videos.slice(0, LIMIT)) {
     page.getByRole("button", { name: /^Export (MP4|WebM)$/ }).click(),
   ]);
   const seconds = (Date.now() - t0) / 1000;
-  const file = path.join(OUT, dl.suggestedFilename().replace(/^/, item.file.replace(".webm", "") + "-"));
+  const file = path.join(OUT, `${EXT}-` + dl.suggestedFilename().replace(/^/, item.file.replace(".webm", "") + "-"));
   await dl.saveAs(file);
   const note = await page.locator('[role="status"]').last().innerText().catch(() => "");
   // Lottie from the same project, to compare with the rebuilt video.
@@ -103,7 +105,7 @@ for (const item of index.videos.slice(0, LIMIT)) {
   await ctx.close();
 
   const info = probe(file);
-  const gt = JSON.parse(fs.readFileSync(src.replace(".webm", ".json")));
+  const gt = JSON.parse(fs.readFileSync(path.join(VID, item.file.replace(".webm", ".json"))));
   const w = 320, h = Math.round((320 * gt.height) / gt.width / 2) * 2;
   const a = gray(src, w, h), b = gray(file, w, h);
   const n = Math.min(a.length, b.length);
@@ -129,6 +131,6 @@ for (const item of index.videos.slice(0, LIMIT)) {
   console.log(`${row.file} ${gt.duration.toFixed(1)}s → ${row.format} ${row.streams} ${row.exportDuration}s in ${seconds.toFixed(1)}s · vs original: diff ${row.meanAbsDiff}, PSNR ${row.psnr} dB · Lottie (${row.lottieKB} KB) vs video: diff ${row.lottieVsVideoDiff}, PSNR ${row.lottieVsVideoPsnr} dB`);
 }
 await browser.close();
-fs.writeFileSync(path.join(DIR, "results", "video-export-check.json"), JSON.stringify(rows, null, 2));
+fs.writeFileSync(path.join(DIR, "results", `video-export-check${EXT === "webm" ? "" : "-" + EXT}.json`), JSON.stringify(rows, null, 2));
 const mean = (k) => rows.reduce((s, r) => s + r[k], 0) / rows.length;
 console.log(`\nmean difference ${mean("meanAbsDiff").toFixed(2)} (0–255) · mean PSNR ${mean("psnr").toFixed(1)} dB · export time ${(mean("exportSeconds") / mean("duration")).toFixed(2)}× video length`);

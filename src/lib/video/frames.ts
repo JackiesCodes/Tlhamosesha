@@ -32,7 +32,7 @@ export function openVideo(src: string): Promise<HTMLVideoElement> {
     v.onerror = () =>
       reject(
         new VideoUnsupportedError(
-          "This browser can't play this video. Export it as MP4 (H.264) or WebM and try again.",
+          "This browser can't play this video's format. Try Chrome, Edge or Safari, or convert it to MP4 (H.264) or WebM (VP9) and try again.",
         ),
       );
     v.src = src;

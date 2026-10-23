@@ -16,6 +16,8 @@ const LABEL = process.argv[2] ?? "latest";
 const BASE = process.argv[3] ?? "http://localhost:3100";
 const LIMIT = +(process.argv[4] ?? 999);
 const SET = process.env.EVAL_SET;
+// VIDEO_EXT=mp4 plays the H.264 copies instead of WebM (needs a Chrome build with H.264, via CHROMIUM=...).
+const EXT = process.env.VIDEO_EXT ?? "webm";
 const DIR = import.meta.dirname;
 const VID = path.join(DIR, SET ? `videos-${SET}` : "videos");
 const RES = path.join(DIR, "results");
@@ -215,7 +217,7 @@ for (const item of index.videos.slice(0, LIMIT)) {
   let peakMB = baseMB;
   const sampler = setInterval(() => (peakMB = Math.max(peakMB, browserRssMB())), 500);
   const t0 = Date.now();
-  await page.locator('input[type=file][accept*="video"]').setInputFiles(path.join(VID, item.file));
+  await page.locator('input[type=file][accept*="video"]').setInputFiles(path.join(VID, item.file.replace(".webm", `.${EXT}`)));
   await page.waitForFunction(() => window.__videoBreakdown !== undefined, null, { timeout: 15 * 60 * 1000, polling: 250 });
   const seconds = (Date.now() - t0) / 1000;
   clearInterval(sampler);
@@ -255,7 +257,7 @@ await browser.close();
 
 const overall = summarize(rows);
 const byTier = Object.fromEntries(["clean", "textured", "photo"].map((t) => [t, rows.some((r) => r.tier === t) ? summarize(rows.filter((r) => r.tier === t)) : null]));
-fs.writeFileSync(path.join(RES, `video-${SET ? SET + "-" : ""}${LABEL}.json`), JSON.stringify({ label: LABEL, at: new Date().toISOString(), overall, byTier, rows }, null, 2));
+fs.writeFileSync(path.join(RES, `video-${SET ? SET + "-" : ""}${EXT === "webm" ? "" : EXT + "-"}${LABEL}.json`), JSON.stringify({ label: LABEL, at: new Date().toISOString(), overall, byTier, rows }, null, 2));
 
 const pct = (v) => (Number.isNaN(v) ? "–" : (v * 100).toFixed(1) + "%");
 const lines = [
