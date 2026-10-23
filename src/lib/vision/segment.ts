@@ -302,8 +302,9 @@ export function withMatte(
         if (ai[y * w + x]) hit++;
         if (graphics?.isGraphic(x, y)) crisp++;
       }
-    if (hit / Math.max(1, tot) > 0.3) continue;
-    if (graphics && crisp / Math.max(1, tot) < 0.25) continue;
+    // Left to the matte only when the matte really covers it.
+    if (hit / Math.max(1, tot) > 0.7) continue;
+    if (graphics && crisp / Math.max(1, tot) < 0.25 && outlineCrispness(r, seg.labels, g) < 0.5) continue;
     kept.push(g.box);
     for (let y = g.box.y; y < g.box.y + g.box.height; y++)
       for (let x = g.box.x; x < g.box.x + g.box.width; x++) if (seg.labels[y * w + x] === g.label) mask[y * w + x] = 1;
@@ -315,6 +316,26 @@ export function withMatte(
   }
   const { labels, regions } = components(r, mask);
   return { ...seg, saliency: m, mask, labels, regions };
+}
+
+/** Share of a region's outline where the colour steps sharply (within two pixels) to something else. */
+function outlineCrispness(r: Raster, labels: Int32Array, g: Region) {
+  const { width: w, height: h } = r;
+  let edge = 0;
+  let crisp = 0;
+  const col = (i: number): RGB => [r.data[i * 4], r.data[i * 4 + 1], r.data[i * 4 + 2]];
+  for (let y = Math.max(2, g.box.y); y < Math.min(h - 2, g.box.y + g.box.height); y++)
+    for (let x = Math.max(2, g.box.x); x < Math.min(w - 2, g.box.x + g.box.width); x++) {
+      const i = y * w + x;
+      if (labels[i] !== g.label) continue;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        if (labels[i + dx + dy * w] === g.label) continue;
+        edge++;
+        if (colorDistance(col(i + 2 * dx + 2 * dy * w), col(i)) > 45) crisp++;
+        break;
+      }
+    }
+  return edge ? crisp / edge : 0;
 }
 
 export type MergedRegion = ReturnType<typeof mergeNearby>[number];

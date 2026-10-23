@@ -42,9 +42,9 @@ Cloud vision is **opt-in for users**: when providers are configured, a "Cloud vi
 
 | Area | Output |
 | --- | --- |
-| **Text** | Every line via Tesseract OCR (WASM, self-hosted), with role (headline, sub-headline, caption, statistic, score, date, name, CTA, body), box, colour, and estimated font family, weight, size, tracking, case and alignment |
-| **Images** | People and players, faces, products, vehicles, buildings, logos, team badges, sponsor marks and icons. Each one is a transparent PNG with a crop and position data. Word-mark logos are read (e.g. *Sponsor logo · VOLTA*) |
-| **Backgrounds** | A clean inpainted background plate, plus gradient, texture/grain, depth-blur, colour-overlay and lighting-map layers, each downloadable |
+| **Text** | Every line via the on-device PP-OCRv4 text detector and reader (Tesseract as the fallback), with role (headline, sub-headline, caption, statistic, score, date, name, CTA, body), box, colour, case and alignment. Font family, weight, size and letter-spacing are matched by re-rendering each line in a library of 22 self-hosted typefaces |
+| **Images** | People and players, faces, products, vehicles, buildings, logos, team badges, sponsor marks and icons. Each one is a transparent PNG with a crop and position data. Photographic subjects are cut out with an AI matte; flat logos and icons with a crisp-edge mask |
+| **Backgrounds** | A clean background plate with text and objects removed by on-device AI inpainting, plus gradient, texture/grain, depth-blur, colour-overlay and lighting-map layers, each downloadable |
 | **Colours** | Primary, secondary, accent and neutral palettes in HEX, RGB and HSL, with contrast ratios and CSS for gradients |
 | **Layout** | Columns, rows, gutters, margins, padding, baseline, alignment, symmetry and visual hierarchy, drawn as a wireframe |
 | **Metadata** | Dimensions, aspect ratio, orientation, and design type with confidence (e.g. *Sports Poster — 97%*) plus alternatives |
@@ -90,6 +90,18 @@ prisma/schema.prisma    Users, Workspaces, Projects, Uploads, Assets, Layers, Co
                         Reconstructions, Exports, AnalysisResults
 services/vision/        FastAPI reference service: YOLO detection → SAM masks → rembg fallback → OpenCV clean-up
 ```
+
+### On-device AI models
+
+All models are self-hosted in `public/models` and run in the browser in a worker (`public/ml-worker.mjs`) with ONNX Runtime Web: WebGPU when available, otherwise multi-threaded WASM (the site sends cross-origin isolation headers for threads). They download once (about 75 MB) and are cached. If they can't load, the classical pipeline below runs instead; users can switch them off in Settings.
+
+| Model | Use | Licence | File |
+| --- | --- | --- | --- |
+| ISNet (DIS, general use) | Foreground matte for cut-outs | Apache-2.0 | `isnet-general-q8.onnx` (weights stored as int8, computed in float) |
+| MI-GAN | Background inpainting | MIT | `migan-fp16.onnx` (weights stored as fp16) |
+| PP-OCRv4 det + rec (PaddleOCR, via RapidOCR) | Text detection and reading | Apache-2.0 | `ppocrv4-det.onnx`, `ppocrv4-rec.onnx`, `ppocrv4-rec-keys.json` |
+
+`vision/ml.ts` is the client; `paddle.ts` (text), `plate.ts` (background), `graphics.ts` (crisp flat graphics on any background) and `fonts.ts` (font matching) use it. Fonts come from Fontsource (SIL Open Font License) via `scripts/copy-font-assets.mjs`.
 
 ### How detection works without cloud models
 

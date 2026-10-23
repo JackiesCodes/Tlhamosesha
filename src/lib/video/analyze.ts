@@ -3,6 +3,7 @@
 import type { AnalysisResult, Box, LayerTiming, VideoScene } from "../types";
 import { buildScene } from "../vision/reconstruct";
 import { boxIoU, loadImage, makeCanvas, release } from "../vision/raster";
+import { loadModel, mlSupported } from "../vision/ml";
 import { runPipeline } from "../vision/pipeline";
 import { count, detectCuts, edges, persistence, shrink, type Cut, type Mini } from "./cuts";
 import { fitMotion, trackLayer } from "./motion";
@@ -91,6 +92,11 @@ export async function analyzeVideo(src: string, fileName: string, opt: VideoOpti
   const scenes: VideoScene[] = [];
   const stepMs: Record<string, number> = {};
   opt.onStep?.("keyframes", "active");
+  // Every keyframe gets the AI text reader. The cut-out and fill models run
+  // too when the GPU runs them; on the CPU they would make a video take
+  // several times longer, so the classical cut-outs are used there.
+  let aiImage = false;
+  if (opt.ai && mlSupported()) aiImage = (await loadModel("textDet").catch(() => "none")) === "webgpu";
   for (const [s, { start, end, keys, empty }] of plan.entries()) {
     opt.onProgress?.("keyframes", s / plan.length, `Scene ${s + 1} of ${plan.length}`);
     t = now();
@@ -105,6 +111,7 @@ export async function analyzeVideo(src: string, fileName: string, opt: VideoOpti
           ocr: opt.ocr && !empty,
           ocrInvertPass: opt.ocrInvertPass,
           ai: opt.ai,
+          aiImage,
           cloud: false,
           sensitivity: opt.sensitivity,
           maxObjects: opt.maxObjects,

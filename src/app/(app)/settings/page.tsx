@@ -139,7 +139,7 @@ export default function SettingsPage() {
           />
           <ToggleRow
             label="AI cut-outs and background fill"
-            hint="Uses on-device AI models for cleaner cut-outs of people and products, and a background with no gaps where text and objects were. Runs in your browser; the models (60 MB) download once."
+            hint="Uses on-device AI models for cleaner cut-outs of people and products, and a background with no gaps where text and objects were. Runs in your browser; the models (about 75 MB) download once."
             checked={settings.aiModels !== false}
             onChange={(v) => setSettings({ aiModels: v })}
           />

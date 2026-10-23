@@ -24,8 +24,29 @@ default set and confirm on a held-out seed you have not looked at, so a change
 that only fits the tuning posters shows up.
 
 Metrics: text lines found (≥80% characters right), character accuracy, false
-text, font-size error, text colour (within ΔRGB 60), headline, objects found
-(IoU ≥ 0.5), object type, false objects, design type and seconds per poster.
+text, font-size error, text colour (within ΔRGB 60), font family and weight,
+headline, objects found (IoU ≥ 0.5), object type, false objects, design type,
+cut-out matte IoU (missed objects count as 0), background error where text
+and objects were removed (mean |ΔRGB| against the true background) and
+seconds per poster. The generators also save each poster's true background
+(`.plate.png`) and each object's true matte (`.obj-N.png`) for the last two.
+
+`EVAL_AI=0` runs the classical pipeline (AI models off) for A/B comparisons;
+`SAVE_PLATES=<dir>` keeps each rebuilt background.
+
+### Real-photo posters
+
+`real-generate.mjs` builds posters around real photographs: a photographic
+cut-out (people, animals, cars, a coffee cup) over a different real photo,
+with the usual text, logos and icons. The kit (`subj-*.png` cut-outs and
+`bg-*.jpg` backgrounds with their subject removed) was made from the rembg
+example photos and scikit-image sample images with a stronger reference
+matting model (BiRefNet) and MI-GAN; it isn't in the repository.
+
+```bash
+REALKIT=/path/to/kit node real-generate.mjs 24 21   # -> fixtures-real/
+EVAL_SET=real node run.mjs my-change
+```
 
 ## Video (Phase 0 prototype)
 

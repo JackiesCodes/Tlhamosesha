@@ -34,6 +34,7 @@ export default function VideoLabPage() {
       const out = await analyzeVideo(url, file.name, {
         ocr: settings.ocr,
         ocrInvertPass: settings.ocrInvertPass,
+        ai: settings.aiModels !== false,
         sensitivity: settings.sensitivity,
         maxObjects: settings.maxObjects,
         onStep: (id, st) => st === "active" && setStatus({ stage: VIDEO_STEPS.find((x) => x.id === id)!.label, progress: 0 }),

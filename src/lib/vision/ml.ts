@@ -3,6 +3,7 @@
 //  - MI-GAN (Picsart, MIT): inpainting for the background plate.
 //  - PP-OCRv4 detection + recognition (PaddleOCR, Apache-2.0): text (paddle.ts).
 // Everything degrades to the classical pipeline when the models can't load.
+import { colorDistance, kmeans, type RGB } from "../color";
 import { makeCanvas, release } from "./raster";
 
 export const MODELS = {
@@ -195,8 +196,12 @@ export async function inpaint(ctx: CanvasRenderingContext2D, hole: Uint8Array, o
     const back = makeCanvas(s, s);
     back.ctx.imageSmoothingQuality = "high";
     back.ctx.drawImage(net.canvas, 0, 0, s, s);
-    const fill = back.ctx.getImageData(0, 0, s, s).data;
+    let fill = back.ctx.getImageData(0, 0, s, s).data;
     const cur = ctx.getImageData(x, y, s, s);
+    // On large holes the model sometimes invents an object in colours found
+    // nowhere around the hole. Then a smooth fill from the surroundings is
+    // the safer result (the object layer usually covers it anyway).
+    if (invented(cur.data, fill, hole, x, y, s, W)) fill = smoothFill(cur.data, hole, x, y, s, W);
     for (let yy = 0; yy < s; yy++)
       for (let xx = 0; xx < s; xx++) {
         const g = (y + yy) * W + x + xx;
@@ -212,6 +217,128 @@ export async function inpaint(ctx: CanvasRenderingContext2D, hole: Uint8Array, o
     onProgress?.((k + 1) / windows.length);
   }
   release(net.canvas);
+}
+
+/** True when much of the fill is far from every colour in the known part of the window. */
+function invented(cur: Uint8ClampedArray, fill: Uint8ClampedArray, hole: Uint8Array, x: number, y: number, s: number, W: number) {
+  const known: RGB[] = [];
+  const filled: RGB[] = [];
+  const step = Math.max(1, Math.round(s / 160));
+  for (let yy = 0; yy < s; yy += step)
+    for (let xx = 0; xx < s; xx += step) {
+      const i = (yy * s + xx) * 4;
+      if (hole[(y + yy) * W + x + xx]) filled.push([fill[i], fill[i + 1], fill[i + 2]]);
+      else known.push([cur[i], cur[i + 1], cur[i + 2]]);
+    }
+  // Small holes (text) are never a problem.
+  if (filled.length < (s * s) / (step * step) * 0.08 || known.length < 50) return false;
+  const centers = kmeans(known, 12, 8).map((c) => c.center);
+  const far = filled.filter((c) => Math.min(...centers.map((k) => colorDistance(c, k))) > 70).length;
+  return far / filled.length > 0.12;
+}
+
+/**
+ * Smooth fill of the window's hole by push–pull: known colours are averaged
+ * down an image pyramid until every cell has a value, then interpolated back
+ * up, so the hole gets a soft blend of its surroundings (like out-of-focus
+ * background) rather than streaks.
+ */
+function smoothFill(cur: Uint8ClampedArray, hole: Uint8Array, x: number, y: number, s: number, W: number) {
+  // Level 0 at up to 256 px, weights = known (1) or hole (0).
+  const n0 = Math.min(256, s);
+  const k = s / n0;
+  type Level = { n: number; c: Float32Array; w: Float32Array };
+  const base: Level = { n: n0, c: new Float32Array(n0 * n0 * 3), w: new Float32Array(n0 * n0) };
+  for (let yy = 0; yy < s; yy++)
+    for (let xx = 0; xx < s; xx++) {
+      if (hole[(y + yy) * W + x + xx]) continue;
+      const j = Math.min(n0 - 1, Math.floor(yy / k)) * n0 + Math.min(n0 - 1, Math.floor(xx / k));
+      const o = (yy * s + xx) * 4;
+      base.c[j * 3] += cur[o];
+      base.c[j * 3 + 1] += cur[o + 1];
+      base.c[j * 3 + 2] += cur[o + 2];
+      base.w[j]++;
+    }
+  for (let j = 0; j < n0 * n0; j++) if (base.w[j]) for (let q = 0; q < 3; q++) base.c[j * 3 + q] /= base.w[j];
+  for (let j = 0; j < n0 * n0; j++) base.w[j] = base.w[j] ? 1 : 0;
+  // Push: average known cells into coarser levels.
+  const levels: Level[] = [base];
+  while (levels[levels.length - 1].n > 1) {
+    const f = levels[levels.length - 1];
+    const n = Math.ceil(f.n / 2);
+    const l: Level = { n, c: new Float32Array(n * n * 3), w: new Float32Array(n * n) };
+    for (let j = 0; j < f.n; j++)
+      for (let i = 0; i < f.n; i++) {
+        const a = j * f.n + i;
+        const b = (j >> 1) * n + (i >> 1);
+        const wt = f.w[a];
+        if (!wt) continue;
+        for (let q = 0; q < 3; q++) l.c[b * 3 + q] += f.c[a * 3 + q] * wt;
+        l.w[b] += wt;
+      }
+    for (let b = 0; b < n * n; b++) {
+      if (l.w[b]) for (let q = 0; q < 3; q++) l.c[b * 3 + q] /= l.w[b];
+      l.w[b] = Math.min(1, l.w[b]);
+    }
+    levels.push(l);
+  }
+  // Pull: fill unknown cells from the (bilinearly sampled) coarser level.
+  for (let li = levels.length - 2; li >= 0; li--) {
+    const f = levels[li];
+    const c = levels[li + 1];
+    for (let j = 0; j < f.n; j++)
+      for (let i = 0; i < f.n; i++) {
+        const a = j * f.n + i;
+        if (f.w[a] >= 1) continue;
+        const u = Math.min(c.n - 1, Math.max(0, (i + 0.5) / 2 - 0.5));
+        const v = Math.min(c.n - 1, Math.max(0, (j + 0.5) / 2 - 0.5));
+        const i0 = Math.floor(u), j0 = Math.floor(v);
+        const i1 = Math.min(c.n - 1, i0 + 1), j1 = Math.min(c.n - 1, j0 + 1);
+        const fu = u - i0, fv = v - j0;
+        for (let q = 0; q < 3; q++) {
+          const val =
+            (c.c[(j0 * c.n + i0) * 3 + q] * (1 - fu) + c.c[(j0 * c.n + i1) * 3 + q] * fu) * (1 - fv) +
+            (c.c[(j1 * c.n + i0) * 3 + q] * (1 - fu) + c.c[(j1 * c.n + i1) * 3 + q] * fu) * fv;
+          f.c[a * 3 + q] = f.c[a * 3 + q] * f.w[a] + val * (1 - f.w[a]);
+        }
+        f.w[a] = 1;
+      }
+  }
+  const small = makeCanvas(n0, n0);
+  const img = new ImageData(n0, n0);
+  for (let j = 0; j < n0 * n0; j++) {
+    for (let q = 0; q < 3; q++) img.data[j * 4 + q] = base.c[j * 3 + q];
+    img.data[j * 4 + 3] = 255;
+  }
+  small.ctx.putImageData(img, 0, 0);
+  const big = makeCanvas(s, s);
+  big.ctx.imageSmoothingQuality = "high";
+  big.ctx.filter = `blur(${Math.max(1, Math.round(k * 2))}px)`;
+  big.ctx.drawImage(small.canvas, 0, 0, s, s);
+  const res = big.ctx.getImageData(0, 0, s, s).data;
+  release(small.canvas, big.canvas);
+  // Grain like the surroundings', so the fill isn't plastic-smooth.
+  let diff = 0;
+  let m = 0;
+  for (let yy = 0; yy < s; yy += 3)
+    for (let xx = 0; xx < s - 1; xx += 3) {
+      const g = (y + yy) * W + x + xx;
+      if (hole[g] || hole[g + 1]) continue;
+      const o = (yy * s + xx) * 4;
+      diff += Math.abs(cur[o] - cur[o + 4]) + Math.abs(cur[o + 1] - cur[o + 5]) + Math.abs(cur[o + 2] - cur[o + 6]);
+      m += 3;
+    }
+  const amp = m ? Math.min(24, (diff / m) * 1.2) : 0;
+  let seed = 12345;
+  const rnd = () => ((seed = (seed * 1103515245 + 12345) >>> 0) / 4294967296) - 0.5;
+  if (amp > 1)
+    for (let i = 0; i < res.length; i += 4) {
+      const n = rnd() * amp * 2;
+      res[i] += n;
+      res[i + 1] += n;
+      res[i + 2] += n;
+    }
+  return res;
 }
 
 /** Square windows covering every hole group. */

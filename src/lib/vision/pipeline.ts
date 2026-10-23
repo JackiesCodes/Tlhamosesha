@@ -53,6 +53,8 @@ export interface PipelineOptions {
   ocrInvertPass: boolean;
   /** On-device AI matte and inpainting (falls back to classical CV if they can't run). */
   ai?: boolean;
+  /** With ai: also the matte and inpainting models (default true). Text uses AI whenever ai is on. */
+  aiImage?: boolean;
   cloud: boolean;
   sensitivity: number;
   maxObjects: number;
@@ -110,8 +112,9 @@ export async function runPipeline(src: string, opt: PipelineOptions): Promise<Pi
 
   // ---- AI matte: starts now and runs in its worker alongside OCR.
   const useAi = !!opt.ai && mlSupported();
+  const useAiImage = useAi && opt.aiImage !== false;
   const tAi = performance.now();
-  const mattePromise: Promise<Matte | null> = useAi
+  const mattePromise: Promise<Matte | null> = useAiImage
     ? loadModel("matte", (p) => opt.onProgress?.("segment", p, "Downloading AI model (once)…"))
         .then(() => runMatte(img))
         .catch((e) => {
@@ -121,7 +124,7 @@ export async function runPipeline(src: string, opt: PipelineOptions): Promise<Pi
         })
     : Promise.resolve(null);
   // Fetch the inpainting model meanwhile; it's needed at the background step.
-  if (useAi) loadModel("inpaint").catch(() => {});
+  if (useAiImage) loadModel("inpaint").catch(() => {});
 
   // ---- palette
   opt.onStep("palette", "active");
@@ -200,6 +203,8 @@ export async function runPipeline(src: string, opt: PipelineOptions): Promise<Pi
     });
     engines.push({ id: "ai", label: "On-device AI matte (ISNet)", status: "ok", durationMs: ms(tAi) });
   }
+  if (typeof localStorage !== "undefined" && localStorage.getItem("rv-debug"))
+    console.log("[dbg]", JSON.stringify({ classical: seg.regions.map((g) => scaleBox(g.box, seg0.scale)), graphics: graphics?.boxes.map((b) => b.box), used: segUsed.regions.map((g) => scaleBox(g.box, seg0.scale)) }));
   let objects = proposeObjects(segUsed, seg0, texts, W, H, opt.maxObjects, mid);
   engines.unshift({ id: "local", label: "On-device CV (saliency + components)", status: "ok", durationMs: ms(tSeg), note: `${objects.length} proposals` });
   let cloudCategories: DesignCategory[] | null = null;
@@ -263,7 +268,7 @@ export async function runPipeline(src: string, opt: PipelineOptions): Promise<Pi
   opt.onStep("background", "active");
   await nextFrame();
   let plate: HTMLCanvasElement | undefined;
-  if (useAi && mlSupported()) {
+  if (useAiImage && mlSupported()) {
     const tFill = performance.now();
     try {
       await loadModel("inpaint");

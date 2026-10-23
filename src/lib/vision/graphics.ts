@@ -96,6 +96,8 @@ export function findGraphics(img: CanvasImageSource & { width: number; height: n
       for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
         const j = i + dx + dy * w;
         if (label[j] === id) continue;
+        // The cut around a blocked text line isn't a real edge of the shape.
+        if (blocked[j] || blocked[i + 2 * dx + 2 * dy * w]) break;
         p.edge++;
         // Two steps out, past any anti-aliased pixel.
         const k = i + 2 * dx + 2 * dy * w;
