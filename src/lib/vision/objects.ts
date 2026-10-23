@@ -3,6 +3,8 @@ import { colorDistance, hexToRgb, type RGB } from "../color";
 import type { Box, DetectedObject, ObjectKind, TextElement } from "../types";
 import { uid } from "../utils";
 import { boxCoverage, makeCanvas, padBox, release, roundBox, scaleBox, type Raster } from "./raster";
+import type { GraphicsMap } from "./graphics";
+import { matteAt, type Matte } from "./ml";
 import { isSkin, mergeNearby, type Segmentation } from "./segment";
 
 const AD_HINT = /\b(shop|buy|order|price|sale|new|drop|launch|only|offer|deal|now)\b|[$€£]|\bR\s?\d/i;
@@ -21,8 +23,14 @@ export function proposeObjects(
   const textBoxes = texts.map((t) => scaleBox(t.box, s));
   const rasterArea = r.width * r.height;
 
-  // Drop regions that are mostly text, then merge fragments.
-  const nonText = seg.regions.filter((g) => textShare(g.box, textBoxes) < 0.55);
+  // Drop regions that are mostly text, then merge fragments. A shape that
+  // wholly encloses its text (a badge, a logo with lettering, a button) stays.
+  const enclosing = (b: Box) => {
+    const inner = textBoxes.filter((t) => t.x < b.x + b.width && t.x + t.width > b.x && t.y < b.y + b.height && t.y + t.height > b.y);
+    return inner.length > 0 && inner.every((t) => boxCoverage(t, b) > 0.95 && t.width < b.width * 0.92 && t.height < b.height * 0.8);
+  };
+  const textLike = (b: Box) => textShare(b, textBoxes) >= 0.55 && !enclosing(b);
+  const nonText = seg.regions.filter((g) => !textLike(g.box));
   const merged = mergeNearby(nonText, Math.max(2, Math.round(Math.min(r.width, r.height) * 0.012)), rasterArea);
 
   const allText = texts.map((t) => t.text).join(" ");
@@ -30,7 +38,7 @@ export function proposeObjects(
   const commercial = AD_HINT.test(allText);
   const candidates = merged
     // Merging can rebuild a block of several text lines; drop those too.
-    .filter((g) => textShare(g.box, textBoxes) < 0.55)
+    .filter((g) => !textLike(g.box))
     // Out-of-focus blobs in photo backgrounds have no crisp edges anywhere.
     .filter((g) => edgeSharpness(r, g.box) >= 18)
     .filter((g) => {
@@ -224,7 +232,9 @@ function findFace(r: Raster, b: Box): Box | null {
 /**
  * Produces a transparent PNG for a detection. Alpha comes from colour distance
  * to the learnt background model, gated by the dilated saliency mask, then
- * feathered — a lightweight stand-in for SAM / rembg matting.
+ * feathered. With the AI matte, alpha comes from the matte instead wherever
+ * it covers the object (photos, people, products); flat graphics the matte
+ * ignores keep the colour-based alpha.
  */
 export function cutout(
   img: HTMLImageElement,
@@ -232,6 +242,8 @@ export function cutout(
   seg: Segmentation,
   mr: Raster,
   texts: TextElement[] = [],
+  matte?: Matte,
+  graphics?: GraphicsMap,
 ): { cutout: string; crop: string; coverage: number } {
   const W = Math.max(1, Math.round(box.width));
   const H = Math.max(1, Math.round(box.height));
@@ -248,6 +260,41 @@ export function cutout(
     .filter((t) => boxCoverage(t.box, box) > 0.5)
     .map((t) => ({ b: t.box, c: hexToRgb(t.color) }));
   const ink = new Uint8Array(W * H);
+  const IW = img.naturalWidth;
+  const IH = img.naturalHeight;
+  let useMatte = false;
+  if (matte) {
+    let on = 0;
+    let tot = 0;
+    for (let y = 0; y < H; y += 4)
+      for (let x = 0; x < W; x += 4) {
+        tot++;
+        if (matteAt(matte, (box.x + x) / IW, (box.y + y) / IH) > 0.5) on++;
+      }
+    useMatte = on / Math.max(1, tot) > 0.12;
+  }
+  // Flat graphics: alpha straight from the crisp-patch mask.
+  const gAt = (gx: number, gy: number) => {
+    const g = graphics!;
+    const x = Math.min(g.w - 1, Math.max(0, gx / g.scale - 0.5));
+    const y = Math.min(g.h - 1, Math.max(0, gy / g.scale - 0.5));
+    const x0 = Math.floor(x), y0 = Math.floor(y);
+    const x1 = Math.min(g.w - 1, x0 + 1), y1 = Math.min(g.h - 1, y0 + 1);
+    const fx = x - x0, fy = y - y0;
+    const m = g.mask;
+    return (m[y0 * g.w + x0] * (1 - fx) + m[y0 * g.w + x1] * fx) * (1 - fy) + (m[y1 * g.w + x0] * (1 - fx) + m[y1 * g.w + x1] * fx) * fy;
+  };
+  let useGraphic = false;
+  if (graphics && !useMatte) {
+    let on = 0;
+    let tot = 0;
+    for (let y = 0; y < H; y += 3)
+      for (let x = 0; x < W; x += 3) {
+        tot++;
+        if (gAt(box.x + x, box.y + y) > 0.5) on++;
+      }
+    useGraphic = on / Math.max(1, tot) > 0.2;
+  }
   for (let y = 0; y < H; y++)
     for (let x = 0; x < W; x++) {
       const i = (y * W + x) * 4;
@@ -269,9 +316,11 @@ export function cutout(
         }
       }
       let a = smoothstep(45, 120, dist);
+      if (useMatte) a = smoothstep(0.08, 0.92, matteAt(matte!, gx / IW, gy / IH));
+      else if (useGraphic) a = Math.max(smoothstep(0.3, 0.7, gAt(gx, gy)), inMask && !inText ? smoothstep(45, 120, dist) : 0);
       // Text inflates the saliency mask, so under a text line trust colour alone:
       // otherwise the background around the letters is kept as a halo.
-      if (inMask && !inText) a = Math.max(a, 0.85);
+      else if (inMask && !inText) a = Math.max(a, 0.85);
       else if (!inMask) a *= 0.35;
       d[i + 3] = Math.round(a * 255);
     }
@@ -293,9 +342,9 @@ export function cutout(
       if (d[i + 3] > 127) kept++;
     }
   ctx.putImageData(id, 0, 0);
-  // feather
+  // feather (the matte is already soft)
   const f = makeCanvas(W, H);
-  f.ctx.filter = "blur(0.6px)";
+  f.ctx.filter = useMatte ? "none" : "blur(0.6px)";
   f.ctx.drawImage(canvas, 0, 0);
   const cut = f.canvas.toDataURL("image/png");
   release(canvas, f.canvas);

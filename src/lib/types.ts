@@ -145,7 +145,7 @@ export interface DesignDNA {
   layout: DnaScore;
 }
 
-export type EngineId = "local" | "ocr" | "openai" | "gemini" | "claude" | "vision-service";
+export type EngineId = "local" | "ai" | "ocr" | "openai" | "gemini" | "claude" | "vision-service";
 
 export interface EngineRun {
   id: EngineId;

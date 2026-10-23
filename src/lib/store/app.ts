@@ -8,6 +8,8 @@ import { allSummaries, putProject, removeProject, summarize } from "./db";
 export interface Settings {
   ocr: boolean;
   ocrInvertPass: boolean;
+  /** On-device AI cut-outs and background fill (undefined in older saved settings = on). */
+  aiModels?: boolean;
   cloud: boolean;
   sensitivity: number;
   maxObjects: number;
@@ -51,6 +53,7 @@ export const useApp = create<AppState>()(
       settings: {
         ocr: true,
         ocrInvertPass: true,
+        aiModels: true,
         // Cloud vision is opt-in: by default images never leave the browser.
         cloud: false,
         sensitivity: 0.5,

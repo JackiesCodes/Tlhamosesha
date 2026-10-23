@@ -18,10 +18,15 @@ import { extractBackground } from "./background";
 import { classifyDesign } from "./classify";
 import { scoreDna } from "./dna";
 import { analyzeLayout } from "./layout";
+import { matchFonts } from "./fonts";
+import { findGraphics, type GraphicsMap } from "./graphics";
+import { disableMl, loadModel, matte as runMatte, matteAt, matteGrid, mlSupported, type Matte } from "./ml";
 import { cutout, proposeObjects } from "./objects";
-import { boxIoU, loadImage, makeCanvas, nextFrame, rasterize, release, sampleColors } from "./raster";
+import { runPaddleOcr } from "./paddle";
+import { aiPlate } from "./plate";
+import { boxIoU, loadImage, makeCanvas, nextFrame, rasterize, release, sampleColors, scaleBox } from "./raster";
 import { buildScene } from "./reconstruct";
-import { segment } from "./segment";
+import { segment, withMatte } from "./segment";
 import { buildTextElements, classifyTextRole, readRegions, runOcr, type OcrLine } from "./text";
 
 export const PIPELINE_STEPS = [
@@ -46,6 +51,8 @@ export interface PipelineOptions {
   mimeType: string;
   ocr: boolean;
   ocrInvertPass: boolean;
+  /** On-device AI matte and inpainting (falls back to classical CV if they can't run). */
+  ai?: boolean;
   cloud: boolean;
   sensitivity: number;
   maxObjects: number;
@@ -101,6 +108,21 @@ export async function runPipeline(src: string, opt: PipelineOptions): Promise<Pi
   opt.onStep("load", "done", `${origW}×${origH}`);
   await nextFrame();
 
+  // ---- AI matte: starts now and runs in its worker alongside OCR.
+  const useAi = !!opt.ai && mlSupported();
+  const tAi = performance.now();
+  const mattePromise: Promise<Matte | null> = useAi
+    ? loadModel("matte", (p) => opt.onProgress?.("segment", p, "Downloading AI model (once)…"))
+        .then(() => runMatte(img))
+        .catch((e) => {
+          console.warn("[ai] matte unavailable, using classical cut-outs", e);
+          disableMl();
+          return null;
+        })
+    : Promise.resolve(null);
+  // Fetch the inpainting model meanwhile; it's needed at the background step.
+  if (useAi) loadModel("inpaint").catch(() => {});
+
   // ---- palette
   opt.onStep("palette", "active");
   const palette = buildPalette(sampleColors(seg0, 2), 10);
@@ -119,17 +141,29 @@ export async function runPipeline(src: string, opt: PipelineOptions): Promise<Pi
   // ---- OCR and cloud in parallel
   const cloudPromise = opt.cloud ? callCloud(img) : Promise.resolve(null);
   let lines: OcrLine[] = [];
+  let paddle = false;
   if (opt.ocr) {
     opt.onStep("ocr", "active");
     const tOcr = performance.now();
-    try {
-      lines = await runOcr(img, (p, note) => opt.onProgress?.("ocr", p, note), opt.ocrInvertPass);
-      engines.push({ id: "ocr", label: "Tesseract OCR (WASM)", status: "ok", durationMs: ms(tOcr), note: `${lines.length} lines` });
-      opt.onStep("ocr", "done", `${lines.length} lines`);
-    } catch (e) {
-      engines.push({ id: "ocr", label: "Tesseract OCR (WASM)", status: "error", durationMs: ms(tOcr), note: String(e) });
-      opt.onStep("ocr", "error", "OCR unavailable");
+    if (useAi) {
+      try {
+        lines = await runPaddleOcr(img, (p, note) => opt.onProgress?.("ocr", p, note));
+        paddle = true;
+        engines.push({ id: "ocr", label: "On-device AI text reader (PP-OCRv4)", status: "ok", durationMs: ms(tOcr), note: `${lines.length} lines` });
+        opt.onStep("ocr", "done", `${lines.length} lines`);
+      } catch (e) {
+        console.warn("[ai] text model unavailable, using Tesseract", e);
+      }
     }
+    if (!paddle)
+      try {
+        lines = await runOcr(img, (p, note) => opt.onProgress?.("ocr", p, note), opt.ocrInvertPass);
+        engines.push({ id: "ocr", label: "Tesseract OCR (WASM)", status: "ok", durationMs: ms(tOcr), note: `${lines.length} lines` });
+        opt.onStep("ocr", "done", `${lines.length} lines`);
+      } catch (e) {
+        engines.push({ id: "ocr", label: "Tesseract OCR (WASM)", status: "error", durationMs: ms(tOcr), note: String(e) });
+        opt.onStep("ocr", "error", "OCR unavailable");
+      }
   } else {
     engines.push({ id: "ocr", label: "Tesseract OCR (WASM)", status: "skipped", durationMs: 0 });
     opt.onStep("ocr", "skipped");
@@ -148,7 +182,25 @@ export async function runPipeline(src: string, opt: PipelineOptions): Promise<Pi
 
   // ---- objects
   opt.onStep("objects", "active");
-  let objects = proposeObjects(seg, seg0, texts, W, H, opt.maxObjects, mid);
+  const aiMatte = await mattePromise;
+  let segUsed = seg;
+  let graphics: GraphicsMap | undefined;
+  if (aiMatte) {
+    graphics = findGraphics(img, W, H, texts.map((t) => t.box), (u, v) => matteAt(aiMatte, u, v) > 0.5);
+    const g = graphics;
+    const k = seg0.scale / g.scale; // segmentation raster px → graphics raster px
+    segUsed = withMatte(seg, seg0, matteGrid(aiMatte, seg0.width, seg0.height), texts.map((t) => scaleBox(t.box, 1 / seg0.scale)), {
+      isGraphic: (x, y) => {
+        // Any graphic pixel under this (coarser) segmentation pixel.
+        for (let yy = Math.floor(y * k); yy < Math.min(g.h, Math.ceil((y + 1) * k)); yy++)
+          for (let xx = Math.floor(x * k); xx < Math.min(g.w, Math.ceil((x + 1) * k)); xx++) if (g.mask[yy * g.w + xx]) return true;
+        return false;
+      },
+      boxes: g.boxes.map((b) => scaleBox(b.box, 1 / seg0.scale)),
+    });
+    engines.push({ id: "ai", label: "On-device AI matte (ISNet)", status: "ok", durationMs: ms(tAi) });
+  }
+  let objects = proposeObjects(segUsed, seg0, texts, W, H, opt.maxObjects, mid);
   engines.unshift({ id: "local", label: "On-device CV (saliency + components)", status: "ok", durationMs: ms(tSeg), note: `${objects.length} proposals` });
   let cloudCategories: DesignCategory[] | null = null;
   if (cloud?.merged) {
@@ -160,7 +212,9 @@ export async function runPipeline(src: string, opt: PipelineOptions): Promise<Pi
         (c, i, arr) => arr.findIndex((x) => x.label === c.label) === i,
       );
   }
-  if (opt.ocr) {
+  // Second-chance reads of buttons and word-mark logos (Tesseract only: the
+  // AI text detector already finds them).
+  if (opt.ocr && !paddle) {
     try {
       const targets = objects.filter(
         (o) =>
@@ -187,6 +241,8 @@ export async function runPipeline(src: string, opt: PipelineOptions): Promise<Pi
       /* region OCR is best-effort */
     }
   }
+  // Typography: match each line against the font library by rendering.
+  await matchFonts(img, texts);
   opt.onStep("objects", "done", `${objects.length} objects`);
   await nextFrame();
 
@@ -194,7 +250,7 @@ export async function runPipeline(src: string, opt: PipelineOptions): Promise<Pi
   opt.onStep("cutouts", "active");
   for (let i = 0; i < objects.length; i++) {
     const o = objects[i];
-    const c = cutout(img, o.box, seg, seg0, texts);
+    const c = cutout(img, o.box, segUsed, seg0, texts, aiMatte ?? undefined, graphics);
     o.cutout = c.cutout;
     o.crop = c.crop;
     o.coverage = c.coverage;
@@ -206,11 +262,24 @@ export async function runPipeline(src: string, opt: PipelineOptions): Promise<Pi
   // ---- background
   opt.onStep("background", "active");
   await nextFrame();
+  let plate: HTMLCanvasElement | undefined;
+  if (useAi && mlSupported()) {
+    const tFill = performance.now();
+    try {
+      await loadModel("inpaint");
+      plate = (await aiPlate(img, texts, objects, aiMatte ?? undefined, (p) => opt.onProgress?.("background", p))).canvas;
+      engines.push({ id: "ai", label: "On-device AI background fill (MI-GAN)", status: "ok", durationMs: ms(tFill) });
+    } catch (e) {
+      console.warn("[ai] background fill unavailable, using classical fill", e);
+      engines.push({ id: "ai", label: "On-device AI background fill (MI-GAN)", status: "error", durationMs: ms(tFill), note: String(e) });
+    }
+  }
   const bg = extractBackground(
     img,
     seg0,
-    seg.mask,
+    segUsed.mask,
     [...texts.map((t) => t.box), ...objects.map((o) => o.box)],
+    plate,
   );
   opt.onStep("background", "done", `${bg.layers.length} layers`);
   await nextFrame();

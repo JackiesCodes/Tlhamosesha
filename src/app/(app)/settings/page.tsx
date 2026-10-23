@@ -137,6 +137,12 @@ export default function SettingsPage() {
             checked={settings.ocrInvertPass}
             onChange={(v) => setSettings({ ocrInvertPass: v })}
           />
+          <ToggleRow
+            label="AI cut-outs and background fill"
+            hint="Uses on-device AI models for cleaner cut-outs of people and products, and a background with no gaps where text and objects were. Runs in your browser; the models (60 MB) download once."
+            checked={settings.aiModels !== false}
+            onChange={(v) => setSettings({ aiModels: v })}
+          />
           <div>
             <div className="mb-2 flex justify-between text-sm">
               <span className="text-white">Detection sensitivity</span>

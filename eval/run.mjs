@@ -57,6 +57,8 @@ function scorePoster(gt, a) {
       acc,
       pred: joined,
       sizeErr: best ? Math.abs(best.font.sizePx - g.fontSize) / g.fontSize : null,
+      fontOk: best ? best.font.family === g.fontFamily.split(",")[0].trim() : null,
+      weightOk: best ? Math.abs(best.font.weight - g.fontWeight) <= 100 : null,
       colorOk: best ? colorDist(rgb(best.color), rgb(g.color)) < 60 : null,
       roleOk: best ? best.role === g.role : null,
     });
@@ -80,7 +82,7 @@ function scorePoster(gt, a) {
     pObjs.forEach((p, k) => { if (used.has(k)) return; const v = iou(p.box, g.box); if (v > bestIoU) { bestIoU = v; best = k; } });
     const found = bestIoU >= 0.5;
     if (found) used.add(best);
-    r.objects.push({ kind: g.kind, found, iou: +bestIoU.toFixed(2), predKind: best >= 0 ? pObjs[best].kind : null, kindOk: found && pObjs[best].kind === g.kind });
+    r.objects.push({ kind: g.kind, found, iou: +bestIoU.toFixed(2), predId: found ? pObjs[best].id : null, predKind: best >= 0 ? pObjs[best].kind : null, kindOk: found && pObjs[best].kind === g.kind });
   }
   pObjs.forEach((p, k) => {
     if (used.has(k)) return;
@@ -102,11 +104,18 @@ function summarize(rows) {
     falseTextsPerPoster: mean(rows.map((r) => r.score.fpTexts.length)),
     fontSizeErrMedian: median(T.filter((t) => t.sizeErr != null).map((t) => t.sizeErr)),
     colorAccuracy: mean(T.filter((t) => t.colorOk != null).map((t) => (t.colorOk ? 1 : 0))),
+    fontAccuracy: mean(T.filter((t) => t.fontOk != null).map((t) => (t.fontOk ? 1 : 0))),
+    weightAccuracy: mean(T.filter((t) => t.weightOk != null).map((t) => (t.weightOk ? 1 : 0))),
     headlineAccuracy: mean(rows.map((r) => (r.score.headlineOk ? 1 : 0))),
     objectRecall: mean(O.map((o) => (o.found ? 1 : 0))),
     objectKindAccuracy: mean(O.filter((o) => o.found).map((o) => (o.kindOk ? 1 : 0))),
     falseObjectsPerPoster: mean(rows.map((r) => r.score.fpObjects.length)),
     designTypeAccuracy: mean(rows.map((r) => (r.score.designOk ? 1 : 0))),
+    // Pixel truth (fixtures with .plate.png / .obj-N.png): cut-out matte IoU per
+    // object (missed objects count as 0) and background error where text and
+    // objects were removed (mean |ΔRGB|, 0–255).
+    cutoutIoU: mean(O.filter((o) => o.maskIoU != null).map((o) => o.maskIoU)),
+    plateError: mean(rows.filter((r) => r.score.plate).map((r) => r.score.plate.hole)),
     secondsPerPoster: mean(rows.map((r) => r.seconds)),
   };
   return s;
@@ -116,6 +125,16 @@ function summarize(rows) {
 const index = JSON.parse(fs.readFileSync(path.join(FIX, "index.json")));
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM ?? "/opt/pw-browsers/chromium" });
 const page = await browser.newPage({ viewport: { width: 1400, height: 900 } });
+// EVAL_AI=0 runs the classical pipeline (no on-device AI models), for A/B runs.
+if (process.env.EVAL_AI === "0") {
+  await page.goto(`${BASE}/upload`);
+  await page.evaluate(() => {
+    const k = "tlhamosesha-app";
+    const v = JSON.parse(localStorage.getItem(k) ?? '{"state":{"settings":{}},"version":0}');
+    v.state.settings = { ocr: true, ocrInvertPass: true, cloud: false, sensitivity: 0.5, maxObjects: 14, reduceMotion: false, ...v.state.settings, aiModels: false };
+    localStorage.setItem(k, JSON.stringify(v));
+  });
+}
 const rows = [];
 for (const item of index.posters.slice(0, LIMIT)) {
   const gt = JSON.parse(fs.readFileSync(path.join(FIX, item.file.replace(".png", ".json"))));
@@ -139,15 +158,82 @@ for (const item of index.posters.slice(0, LIMIT)) {
     analysis.objects.forEach((o) => (o.box = sb(o.box)));
   }
   const score = scorePoster(gt, analysis);
-  rows.push({ file: item.file, tier: item.tier, theme: item.theme, seconds, score });
+  const base = path.join(FIX, item.file.replace(".png", ""));
+  if (fs.existsSync(`${base}.plate.png`)) {
+    const b64 = (f) => "data:image/png;base64," + fs.readFileSync(f).toString("base64");
+    const px = await page.evaluate(
+      async ({ id, k, plate, masks, pairs, holes }) => {
+        const db = await new Promise((r) => { const q = indexedDB.open("tlhamosesha-projects"); q.onsuccess = () => r(q.result); });
+        const p = await new Promise((r) => { const q = db.transaction("projects").objectStore("projects").get(id); q.onsuccess = () => r(q.result); });
+        const load = (src) => new Promise((r, e) => { const i = new Image(); i.onload = () => r(i); i.onerror = e; i.src = src; });
+        const truthPlate = await load(plate);
+        const W = truthPlate.naturalWidth, H = truthPlate.naturalHeight;
+        const read = (draw) => { const c = document.createElement("canvas"); c.width = W; c.height = H; const x = c.getContext("2d"); draw(x); return x.getImageData(0, 0, W, H).data; };
+        const alpha = (d) => { const a = new Uint8Array(W * H); for (let i = 0; i < a.length; i++) a[i] = d[i * 4 + 3] > 127 ? 1 : 0; return a; };
+        const region = new Uint8Array(W * H);
+        // Truth mattes, and the hole region they plus the text make.
+        const truth = [];
+        for (const m of masks) {
+          const img = await load(m);
+          const d = read((x) => x.drawImage(img, 0, 0));
+          truth.push(alpha(d));
+          for (let i = 0; i < W * H; i++) if (d[i * 4 + 3] > 12) region[i] = 1;
+        }
+        for (const b of holes) {
+          for (let y = Math.max(0, Math.floor(b.y - 3)); y < Math.min(H, Math.ceil(b.y + b.height + 3)); y++)
+            for (let x = Math.max(0, Math.floor(b.x - 3)); x < Math.min(W, Math.ceil(b.x + b.width + 3)); x++) region[y * W + x] = 1;
+        }
+        const objIoU = [];
+        for (const [j, pid] of pairs.entries()) {
+          if (!pid) { objIoU.push(0); continue; }
+          const o = p.analysis.objects.find((q) => q.id === pid);
+          const img = await load(o.cutout);
+          const pa = alpha(read((x) => x.drawImage(img, o.box.x * k, o.box.y * k, o.box.width * k, o.box.height * k)));
+          let I = 0, U = 0;
+          for (let i = 0; i < W * H; i++) { I += pa[i] & truth[j][i]; U += pa[i] | truth[j][i]; }
+          objIoU.push(U ? I / U : 0);
+        }
+        const baseLayer = p.analysis.backgrounds.find((b) => b.kind === "base");
+        const tp = read((x) => x.drawImage(truthPlate, 0, 0));
+        const predImg = await load(baseLayer.image);
+        const pd = read((x) => x.drawImage(predImg, 0, 0, W, H));
+        let eh = 0, nh = 0, eo = 0, no = 0;
+        for (let i = 0; i < W * H; i++) {
+          const e = (Math.abs(pd[i * 4] - tp[i * 4]) + Math.abs(pd[i * 4 + 1] - tp[i * 4 + 1]) + Math.abs(pd[i * 4 + 2] - tp[i * 4 + 2])) / 3;
+          if (region[i]) { eh += e; nh++; } else { eo += e; no++; }
+        }
+        return { objIoU, plate: { hole: nh ? eh / nh : 0, rest: no ? eo / no : 0 }, image: baseLayer.image };
+      },
+      {
+        id,
+        k: 1 / k,
+        plate: b64(`${base}.plate.png`),
+        masks: gt.objects.map((_, j) => b64(`${base}.obj-${j}.png`)),
+        pairs: score.objects.map((o) => o.predId),
+        holes: [...gt.texts.map((t) => t.box), ...(gt.button ? [gt.button] : [])],
+      },
+    );
+    px.objIoU.forEach((v, j) => (score.objects[j].maskIoU = +v.toFixed(3)));
+    score.plate = { hole: +px.plate.hole.toFixed(2), rest: +px.plate.rest.toFixed(2) };
+    // SAVE_PLATES=<dir> keeps each rebuilt background for inspection.
+    if (process.env.SAVE_PLATES) {
+      fs.mkdirSync(process.env.SAVE_PLATES, { recursive: true });
+      const [, b64] = px.image.split(",");
+      fs.writeFileSync(path.join(process.env.SAVE_PLATES, item.file.replace(".png", ".plate.jpg")), Buffer.from(b64, "base64"));
+    }
+  }
+  const pred = { objects: analysis.objects.map((o) => ({ kind: o.kind, label: o.label, box: o.box })), texts: analysis.texts.map((t) => ({ text: t.text, box: t.box, font: t.font, color: t.color })) };
+  rows.push({ file: item.file, tier: item.tier, theme: item.theme, seconds, score, pred });
   const tf = score.texts.filter((t) => t.found).length;
   const of = score.objects.filter((o) => o.found).length;
-  console.log(`${item.file} ${item.tier.padEnd(8)} text ${tf}/${score.texts.length}  objects ${of}/${score.objects.length}  fpT ${score.fpTexts.length} fpO ${score.fpObjects.length}  ${score.designOk ? "✓" : "✗ " + score.designPred}  ${seconds.toFixed(1)}s`);
+  const pxNote = score.plate ? `  matte ${score.objects.map((o) => o.maskIoU?.toFixed(2)).join(",")}  bgErr ${score.plate.hole}` : "";
+  console.log(`${item.file} ${item.tier.padEnd(8)} text ${tf}/${score.texts.length}  objects ${of}/${score.objects.length}  fpT ${score.fpTexts.length} fpO ${score.fpObjects.length}  ${score.designOk ? "✓" : "✗ " + score.designPred}  ${seconds.toFixed(1)}s${pxNote}`);
 }
 await browser.close();
 
 const overall = summarize(rows);
-const byTier = Object.fromEntries(["clean", "textured", "photo"].map((t) => [t, summarize(rows.filter((r) => r.tier === t))]));
+const TIERS = SET === "real" ? ["real"] : ["clean", "textured", "photo"];
+const byTier = Object.fromEntries(TIERS.map((t) => [t, summarize(rows.filter((r) => r.tier === t))]));
 fs.writeFileSync(path.join(RES, `${SET ? SET + "-" : ""}${LABEL}.json`), JSON.stringify({ label: LABEL, at: new Date().toISOString(), overall, byTier, rows }, null, 2));
 
 const pct = (v) => (Number.isNaN(v) ? "  –  " : (v * 100).toFixed(1).padStart(5) + "%");
@@ -160,15 +246,19 @@ const metrics = [
   ["False text / poster", "falseTextsPerPoster", num, false],
   ["Font size error (median)", "fontSizeErrMedian", pct, false],
   ["Text colour correct", "colorAccuracy", pct, true],
+  ["Font family correct", "fontAccuracy", pct, true],
+  ["Font weight within 100", "weightAccuracy", pct, true],
   ["Headline identified", "headlineAccuracy", pct, true],
   ["Objects found", "objectRecall", pct, true],
   ["Object type correct", "objectKindAccuracy", pct, true],
   ["False objects / poster", "falseObjectsPerPoster", num, false],
   ["Design type correct", "designTypeAccuracy", pct, true],
+  ["Cut-out matte IoU", "cutoutIoU", pct, true],
+  ["Background error (holes)", "plateError", num, false],
   ["Seconds / poster", "secondsPerPoster", num, false],
 ];
 console.log(`\n${LABEL} — ${rows.length} posters`);
-console.log("metric".padEnd(28), "all".padStart(7), "clean".padStart(7), "textured".padStart(9), "photo".padStart(7), base ? "  vs baseline" : "");
+console.log("metric".padEnd(28), "all".padStart(7), ...TIERS.map((t) => t.padStart(9)), base ? "  vs baseline" : "");
 for (const [name, key, fmt, up] of metrics) {
   let delta = "";
   if (base) {
@@ -177,5 +267,5 @@ for (const [name, key, fmt, up] of metrics) {
     const bad = up ? d < -0.0005 : d > 0.0005;
     delta = `  ${good ? "▲" : bad ? "▼" : "·"} ${fmt === pct ? (d * 100).toFixed(1) + " pts" : d.toFixed(2)}`;
   }
-  console.log(name.padEnd(28), fmt(overall[key]).padStart(7), fmt(byTier.clean[key]).padStart(7), fmt(byTier.textured[key]).padStart(9), fmt(byTier.photo[key]).padStart(7), delta);
+  console.log(name.padEnd(28), fmt(overall[key]).padStart(7), ...TIERS.map((t) => fmt(byTier[t][key]).padStart(9)), delta);
 }

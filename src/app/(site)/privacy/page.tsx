@@ -48,10 +48,17 @@ export default function PrivacyPage() {
         as the hosting provider&apos;s logs retain them. We do not create accounts, and we do not use analytics, advertising or tracking cookies.
       </p>
 
+      <h2>AI models</h2>
+      <p>
+        The AI cut-out and background-fill models are downloaded from our own site the first time you use them and then kept in your
+        browser&apos;s cache. They run on your device; your images are not sent anywhere to use them. You can turn them off in Settings.
+      </p>
+
       <h2>Fonts</h2>
       <p>
-        The interface and the font previews load typefaces from Google Fonts. When they load, your browser connects to Google, which receives
-        your IP address. Google&apos;s use of this information is covered by Google&apos;s privacy policy.
+        The typefaces used by the app and for rebuilding your designs are served from our own site, so loading them does not contact a third
+        party. SVG and HTML files you export link to the same typefaces on Google Fonts so they display correctly elsewhere; opening those
+        files connects to Google, which receives your IP address under Google&apos;s privacy policy.
       </p>
 
       <h2>What we store in your browser</h2>

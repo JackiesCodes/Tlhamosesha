@@ -10,7 +10,7 @@ export const BRAND = {
   /** Legal entity shown in the footer and legal pages. Defaults to the product name. */
   operator: "RevVisual",
   /** Last time the Privacy Policy / Terms text changed (ISO date). */
-  legalUpdated: "2026-10-22",
+  legalUpdated: "2026-10-23",
 } as const;
 
 export const fullTitle = `${BRAND.name} — ${BRAND.tagline}`;

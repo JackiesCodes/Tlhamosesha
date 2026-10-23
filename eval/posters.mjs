@@ -152,7 +152,7 @@ export function createPosterKit(seed) {
   function buildPoster(i, opts = {}) {
     const themeKey = opts.themeKey ?? pick(Object.keys(THEMES));
     const theme = THEMES[themeKey];
-    const tier = opts.tier ?? (i % 3 === 0 ? "clean" : i % 3 === 1 ? "textured" : "photo");
+    const tier = opts.real ? "real" : opts.tier ?? (i % 3 === 0 ? "clean" : i % 3 === 1 ? "textured" : "photo");
     const fmt = opts.fmt ?? pick(FORMATS);
     const p = opts.palette ?? pick(PALETTES);
     const align = pick(["center", "left", "left", "center"]);
@@ -183,22 +183,31 @@ export function createPosterKit(seed) {
     if (tier === "photo" && texts.length > 2) texts[texts.length - 1].lowContrast = true;
 
     const cta = rnd() < 0.7 ? pick(theme.cta) : null;
-    const objectKinds = theme.objects.slice(0, Math.floor(between(1, theme.objects.length + 1)));
+    let objectKinds = theme.objects.slice(0, Math.floor(between(1, theme.objects.length + 1)));
+    // Real-photo posters: the hero is a photographic cut-out; logos and icons stay.
+    if (opts.real) objectKinds = [opts.real.subject.kind, ...objectKinds.filter((k) => k === "logo" || k === "icon")];
     const letters = pick(["LU", "RFC", "NV", "KO", "AX", "SB", "MX"]);
-    return { i, themeKey, theme, tier, fmt, p, align, M, scale, texts, cta, objectKinds, letters, bodyFont };
+    return { i, themeKey, theme, tier, fmt, p, align, M, scale, texts, cta, objectKinds, letters, bodyFont, real: opts.real, blur: opts.real ? pick([0, 0, 4, 10]) : 0 };
   }
 
   function posterHTML(P) {
     const { fmt, p, align, M, scale, texts, cta, objectKinds, letters, bodyFont } = P;
     // Objects occupy a band; text flows top and bottom of it.
     const objs = [];
-    const heroKind = objectKinds.find((k) => k === "person" || k === "product");
-    const heroH = Math.round(fmt.h * between(0.32, 0.42));
+    const real = P.real;
+    const heroKind = real ? real.subject.kind : objectKinds.find((k) => k === "person" || k === "product");
+    let heroH = Math.round(fmt.h * between(0.32, 0.42));
     const heroTop = Math.round(fmt.h * between(0.34, 0.4));
     if (heroKind) {
-      const w = Math.round(heroH * (heroKind === "person" ? 0.68 : between(0.45, 1.3)));
+      let w = Math.round(heroH * (real ? real.subject.w / real.subject.h : heroKind === "person" ? 0.68 : between(0.45, 1.3)));
+      const maxW = Math.round((fmt.w > fmt.h ? 0.55 : 0.86) * fmt.w);
+      if (w > maxW) {
+        heroH = Math.round((heroH * maxW) / w);
+        w = maxW;
+      }
       const left = align === "center" || fmt.w > fmt.h ? Math.round((fmt.w - w) / 2 + (fmt.w > fmt.h ? fmt.w * 0.22 : 0)) : Math.round(fmt.w - M - w);
-      objs.push({ kind: heroKind, x: left, y: heroTop, w, h: heroH, svg: svgObject(heroKind, p.obj, p.accent, letters) });
+      const svg = real ? `<img src="${real.subject.url}" style="width:100%;height:100%;display:block">` : svgObject(heroKind, p.obj, p.accent, letters);
+      objs.push({ kind: heroKind, x: Math.min(left, fmt.w - w), y: heroTop, w, h: heroH, svg });
     }
     let logoCount = 0;
     for (const k of objectKinds.filter((k) => k === "logo" || k === "icon")) {
@@ -231,9 +240,10 @@ export function createPosterKit(seed) {
     html,body{margin:0;padding:0}
     #poster{position:relative;width:${fmt.w}px;height:${fmt.h}px;overflow:hidden;${background(p, P.tier)}}
     #fx{position:absolute;inset:0}
+    #photo{position:absolute;inset:-24px;background-size:cover;background-position:center}
     .obj{position:absolute}
     .obj svg{width:100%;height:100%;display:block}
-    </style></head><body><div id="poster"><canvas id="fx" width="${fmt.w}" height="${fmt.h}"></canvas>
+    </style></head><body><div id="poster">${real ? `<div id="photo" style="background-image:url(${real.bg});filter:blur(${P.blur}px)"></div>` : ""}<canvas id="fx" width="${fmt.w}" height="${fmt.h}"></canvas>
     ${objs.map((o, k) => `<div class="obj" data-o="${k}" data-kind="${o.kind}" style="left:${o.x}px;top:${o.y}px;width:${o.w}px;height:${o.h}px">${o.svg}</div>`).join("")}
     ${block(above, M, "a")}
     ${block(below, heroBottom + Math.round(30 * scale), "b")}
@@ -246,7 +256,7 @@ export function createPosterKit(seed) {
       let a = ${seed};
       const r = () => { a |= 0; a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
       const c = document.getElementById("fx"); const x = c.getContext("2d"); const W = c.width, H = c.height;
-      if (${JSON.stringify(tier)} === "clean") return;
+      if (${JSON.stringify(tier)} === "clean" || ${JSON.stringify(tier)} === "real") return;
       if (${JSON.stringify(tier)} === "photo") {
         const cols = ${JSON.stringify([p.bg[0], p.bg[1], p.obj, p.accent, "#ffffff", "#000000"])};
         x.filter = "blur(" + Math.round(W / 22) + "px)";
@@ -280,6 +290,29 @@ export async function fitPoster(page) {
     const b = document.getElementById("b");
     for (let k = 0; k < 12 && b.getBoundingClientRect().bottom > H - window.__M * 0.6; k++) scaleBlock(b, 0.92);
   });
+}
+
+/**
+ * Layer truth: the poster with all text, objects and the button hidden (the
+ * true background plate), and each object alone on transparency (its true
+ * matte). Call after the main screenshot.
+ */
+export async function captureLayerTruth(page, base) {
+  const hide = (sel, v) => page.evaluate(([sel, v]) => document.querySelectorAll(sel).forEach((e) => (e.style.visibility = v)), [sel, v]);
+  await hide("[data-t],[data-cta],.obj", "hidden");
+  await page.locator("#poster").screenshot({ path: `${base}.plate.png` });
+  const n = await page.locator(".obj").count();
+  await page.evaluate(() => {
+    const p = document.getElementById("poster");
+    p.dataset.bg = p.style.background;
+    p.style.background = "transparent";
+    for (const id of ["fx", "photo"]) document.getElementById(id)?.style.setProperty("visibility", "hidden");
+  });
+  for (let k = 0; k < n; k++) {
+    await page.evaluate((k) => document.querySelectorAll(".obj").forEach((e, j) => (e.style.visibility = j === k ? "visible" : "hidden")), k);
+    await page.locator("#poster").screenshot({ path: `${base}.obj-${k}.png`, omitBackground: true });
+  }
+  return n;
 }
 
 /** Reads the answer key (ink boxes, fonts, colours, objects, button) from the rendered poster. */

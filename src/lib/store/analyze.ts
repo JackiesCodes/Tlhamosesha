@@ -79,6 +79,7 @@ export const useAnalyze = create<AnalyzeState>()((set, get) => {
           const out = await analyzeVideo(input.src, input.fileName, {
             ocr: settings.ocr,
             ocrInvertPass: settings.ocrInvertPass,
+            ai: settings.aiModels !== false,
             sensitivity: settings.sensitivity,
             maxObjects: settings.maxObjects,
             onStep,
@@ -115,6 +116,7 @@ export const useAnalyze = create<AnalyzeState>()((set, get) => {
             mimeType: input.mimeType,
             ocr: settings.ocr,
             ocrInvertPass: settings.ocrInvertPass,
+            ai: settings.aiModels !== false,
             cloud: settings.cloud,
             sensitivity: settings.sensitivity,
             maxObjects: settings.maxObjects,

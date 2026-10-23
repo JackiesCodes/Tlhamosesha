@@ -23,17 +23,14 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-const FONTS =
-  "https://fonts.googleapis.com/css2?family=Inter:wght@300..900&family=Space+Grotesk:wght@500..700&family=JetBrains+Mono:wght@400;600&family=Oswald:wght@300..700&family=Anton&family=Bebas+Neue&family=Montserrat:wght@300..900&family=Playfair+Display:wght@400..900&family=Poppins:wght@300;400;600;800&family=Roboto:wght@300..900&family=Archivo+Black&display=swap";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className="light" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link rel="stylesheet" href={FONTS} />
+        {/* Self-hosted fonts (scripts/copy-font-assets.mjs): the UI fonts and the poster font library. */}
+        <link rel="stylesheet" href="/fonts/fonts.css" />
         <style>{`:root{--font-sans:"Inter";--font-display:"Space Grotesk";--font-mono:"JetBrains Mono"}`}</style>
       </head>
       <body className="min-h-dvh font-sans">{children}</body>

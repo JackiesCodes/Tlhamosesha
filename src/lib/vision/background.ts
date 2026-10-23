@@ -16,51 +16,64 @@ export function extractBackground(
   r: Raster,
   mask: Uint8Array,
   removeBoxes: Box[],
+  ai?: HTMLCanvasElement,
 ): BackgroundResult {
   const { width: w, height: h } = r;
   const W = img.naturalWidth;
   const H = img.naturalHeight;
 
-  // Unknown = salient pixels + every detected element box.
-  const fg = dilate(mask, w, h, 2);
-  const s = 1 / r.scale;
-  for (const b of removeBoxes) {
-    const x0 = Math.max(0, Math.floor(b.x * s) - 1);
-    const y0 = Math.max(0, Math.floor(b.y * s) - 1);
-    const x1 = Math.min(w - 1, Math.ceil((b.x + b.width) * s) + 1);
-    const y1 = Math.min(h - 1, Math.ceil((b.y + b.height) * s) + 1);
-    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) fg[y * w + x] = 1;
-  }
-  const known = new Uint8Array(w * h);
-  for (let i = 0; i < known.length; i++) known[i] = fg[i] ? 0 : 1;
-  const filled = inpaint(r, known);
-
-  // Upscale the plate with a soft blur so the low-res fill does not show.
+  let filled: Raster;
+  let plateC: { canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D };
   const small = makeCanvas(w, h);
-  small.ctx.putImageData(new ImageData(new Uint8ClampedArray(filled.data), w, h), 0, 0);
-  const plateC = makeCanvas(W, H);
-  plateC.ctx.imageSmoothingQuality = "high";
-  plateC.ctx.filter = `blur(${Math.max(1, Math.round(r.scale * 0.8))}px)`;
-  plateC.ctx.drawImage(small.canvas, 0, 0, W, H);
-  plateC.ctx.filter = "none";
-  // Restore crisp original pixels wherever the background was visible.
-  const orig = makeCanvas(W, H);
-  orig.ctx.drawImage(img, 0, 0);
-  const od = orig.ctx.getImageData(0, 0, W, H);
-  const pd = plateC.ctx.getImageData(0, 0, W, H);
-  for (let y = 0; y < H; y++) {
-    const my = Math.min(h - 1, Math.floor(y * s));
-    for (let x = 0; x < W; x++) {
-      const mx = Math.min(w - 1, Math.floor(x * s));
-      if (known[my * w + mx]) {
-        const i = (y * W + x) * 4;
-        pd.data[i] = od.data[i];
-        pd.data[i + 1] = od.data[i + 1];
-        pd.data[i + 2] = od.data[i + 2];
+  if (ai) {
+    // AI plate: already full resolution, original pixels kept outside the holes.
+    plateC = { canvas: ai, ctx: ai.getContext("2d", { willReadFrequently: true })! };
+    small.ctx.imageSmoothingQuality = "high";
+    small.ctx.drawImage(ai, 0, 0, w, h);
+    filled = { width: w, height: h, data: small.ctx.getImageData(0, 0, w, h).data, scale: r.scale };
+  } else {
+    // Unknown = salient pixels + every detected element box.
+    const fg = dilate(mask, w, h, 2);
+    const s = 1 / r.scale;
+    for (const b of removeBoxes) {
+      const x0 = Math.max(0, Math.floor(b.x * s) - 1);
+      const y0 = Math.max(0, Math.floor(b.y * s) - 1);
+      const x1 = Math.min(w - 1, Math.ceil((b.x + b.width) * s) + 1);
+      const y1 = Math.min(h - 1, Math.ceil((b.y + b.height) * s) + 1);
+      for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) fg[y * w + x] = 1;
+    }
+    const known = new Uint8Array(w * h);
+    for (let i = 0; i < known.length; i++) known[i] = fg[i] ? 0 : 1;
+    filled = inpaint(r, known);
+
+    // Upscale the plate with a soft blur so the low-res fill does not show.
+    small.ctx.putImageData(new ImageData(new Uint8ClampedArray(filled.data), w, h), 0, 0);
+    plateC = makeCanvas(W, H);
+    plateC.ctx.imageSmoothingQuality = "high";
+    plateC.ctx.filter = `blur(${Math.max(1, Math.round(r.scale * 0.8))}px)`;
+    plateC.ctx.drawImage(small.canvas, 0, 0, W, H);
+    plateC.ctx.filter = "none";
+    // Restore crisp original pixels wherever the background was visible.
+    const orig = makeCanvas(W, H);
+    orig.ctx.drawImage(img, 0, 0);
+    const od = orig.ctx.getImageData(0, 0, W, H);
+    const pd0 = plateC.ctx.getImageData(0, 0, W, H);
+    for (let y = 0; y < H; y++) {
+      const my = Math.min(h - 1, Math.floor(y * s));
+      for (let x = 0; x < W; x++) {
+        const mx = Math.min(w - 1, Math.floor(x * s));
+        if (known[my * w + mx]) {
+          const i = (y * W + x) * 4;
+          pd0.data[i] = od.data[i];
+          pd0.data[i + 1] = od.data[i + 1];
+          pd0.data[i + 2] = od.data[i + 2];
+        }
       }
     }
+    plateC.ctx.putImageData(pd0, 0, 0);
+    release(orig.canvas);
   }
-  plateC.ctx.putImageData(pd, 0, 0);
+  const pd = plateC.ctx.getImageData(0, 0, W, H);
   const plate = plateC.canvas.toDataURL("image/jpeg", 0.92);
 
   const layers: BackgroundLayer[] = [
@@ -191,7 +204,7 @@ export function extractBackground(
       by = (i / w) | 0;
     }
   }
-  release(small.canvas, plateC.canvas, orig.canvas, blurred.canvas, texC.canvas, blurC.canvas, ov.canvas);
+  release(small.canvas, plateC.canvas, blurred.canvas, texC.canvas, blurC.canvas, ov.canvas);
   const lightSmall = rasterToDataUrl({ width: w, height: h, data: light }, "image/png");
   layers.push({
     id: uid("bg"),

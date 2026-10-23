@@ -144,7 +144,7 @@ function boxBlur(src: Float32Array, w: number, h: number, radius: number) {
   return out;
 }
 
-function components(r: Raster, mask: Uint8Array) {
+export function components(r: Raster, mask: Uint8Array) {
   const { width: w, height: h } = r;
   const labels = new Int32Array(w * h).fill(-1);
   const regions: Region[] = [];
@@ -259,6 +259,62 @@ export function mergeNearby(regions: Region[], gap: number, rasterArea = Infinit
       }
   }
   return list;
+}
+
+/**
+ * Replaces the colour-based foreground with the AI matte (m: one value per
+ * raster pixel). Text boxes are carved out so lines of text don't join the
+ * subjects they overlap. Small classical regions the matte ignores are kept
+ * only when they are crisp flat graphics (logos, icons, badges, buttons), and
+ * graphics the classical pass missed are added: on photographic backgrounds
+ * the classical regions are mostly soft background blobs.
+ */
+export function withMatte(
+  seg: Segmentation,
+  r: Raster,
+  m: Float32Array,
+  textBoxes: Box[],
+  graphics?: { isGraphic: (x: number, y: number) => boolean; boxes: Box[] },
+): Segmentation {
+  const { width: w, height: h } = r;
+  const n = w * h;
+  const ai = new Uint8Array(n);
+  for (let i = 0; i < n; i++) ai[i] = m[i] > 0.5 ? 1 : 0;
+  for (const t of textBoxes) {
+    const pad = Math.max(1, Math.round(t.height * 0.15));
+    const x0 = Math.max(0, Math.floor(t.x - pad));
+    const y0 = Math.max(0, Math.floor(t.y - pad));
+    const x1 = Math.min(w - 1, Math.ceil(t.x + t.width + pad));
+    const y1 = Math.min(h - 1, Math.ceil(t.y + t.height + pad));
+    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) ai[y * w + x] = 0;
+  }
+  const mask = new Uint8Array(ai);
+  const kept: Box[] = [];
+  for (const g of seg.regions) {
+    if ((g.box.width * g.box.height) / n > 0.05) continue;
+    let hit = 0;
+    let crisp = 0;
+    let tot = 0;
+    for (let y = g.box.y; y < g.box.y + g.box.height; y++)
+      for (let x = g.box.x; x < g.box.x + g.box.width; x++) {
+        if (seg.labels[y * w + x] !== g.label) continue;
+        tot++;
+        if (ai[y * w + x]) hit++;
+        if (graphics?.isGraphic(x, y)) crisp++;
+      }
+    if (hit / Math.max(1, tot) > 0.3) continue;
+    if (graphics && crisp / Math.max(1, tot) < 0.25) continue;
+    kept.push(g.box);
+    for (let y = g.box.y; y < g.box.y + g.box.height; y++)
+      for (let x = g.box.x; x < g.box.x + g.box.width; x++) if (seg.labels[y * w + x] === g.label) mask[y * w + x] = 1;
+  }
+  for (const b of graphics?.boxes ?? []) {
+    if (kept.some((k) => boxCoverage(b, k) > 0.5 || boxCoverage(k, b) > 0.5)) continue;
+    for (let y = Math.max(0, Math.floor(b.y)); y < Math.min(h, Math.ceil(b.y + b.height)); y++)
+      for (let x = Math.max(0, Math.floor(b.x)); x < Math.min(w, Math.ceil(b.x + b.width)); x++) if (graphics!.isGraphic(x, y)) mask[y * w + x] = 1;
+  }
+  const { labels, regions } = components(r, mask);
+  return { ...seg, saliency: m, mask, labels, regions };
 }
 
 export type MergedRegion = ReturnType<typeof mergeNearby>[number];

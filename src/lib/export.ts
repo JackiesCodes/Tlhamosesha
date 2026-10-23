@@ -1,5 +1,6 @@
 // Scene exporters: PNG, JPG, SVG, PDF and design-tool JSON interchange.
 import { hexToRgb } from "./color";
+import { googleFontsUrl } from "./fonts";
 import type { Project, Scene, SceneLayer, TextLayer } from "./types";
 import { captionCues, toSrt, toVtt } from "./video/captions";
 import { cssEasing } from "./video/easing";
@@ -18,7 +19,7 @@ export const EXPORT_FORMATS: { id: ExportFormat; label: string; ext: string; des
   { id: "canva-json", label: "Canva JSON", ext: "canva.json", description: "Canva-style page elements" },
 ];
 
-export const GOOGLE_FONTS = ["Inter", "Oswald", "Anton", "Bebas Neue", "Montserrat", "Playfair Display", "JetBrains Mono", "Poppins", "Roboto", "Archivo Black"];
+export { LIBRARY_FAMILIES as GOOGLE_FONTS } from "./fonts";
 
 export function cssFontStack(family: string) {
   return `"${family}", Inter, system-ui, sans-serif`;
@@ -79,7 +80,7 @@ const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replac
 export function sceneToSvg(scene: Scene) {
   const families = [...new Set(scene.layers.filter((l): l is TextLayer => l.type === "text").map((l) => l.fontFamily))];
   const fontCss = families.length
-    ? `@import url('https://fonts.googleapis.com/css2?${families.map((f) => `family=${encodeURIComponent(f)}:wght@100..900`).join("&")}&display=swap');`
+    ? `@import url('${googleFontsUrl(families)}');`
     : "";
   const body = scene.layers
     .filter((l) => l.visible)

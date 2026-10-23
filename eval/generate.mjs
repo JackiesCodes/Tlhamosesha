@@ -8,7 +8,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { chromium } from "playwright-core";
-import { createPosterKit, fitPoster, posterTruth } from "./posters.mjs";
+import { captureLayerTruth, createPosterKit, fitPoster, posterTruth } from "./posters.mjs";
 
 const COUNT = +(process.argv[2] ?? 36);
 const SEED = +(process.argv[3] ?? 7);
@@ -34,6 +34,7 @@ for (let i = 0; i < COUNT; i++) {
   gt.texts.forEach((t, k) => (t.role = roles[k]));
   const file = `poster-${String(i).padStart(2, "0")}.png`;
   await page.locator("#poster").screenshot({ path: path.join(OUT, file) });
+  await captureLayerTruth(page, path.join(OUT, file.replace(".png", "")));
   const truth = { file, width: P.fmt.w, height: P.fmt.h, tier: P.tier, theme: P.themeKey, designType: P.theme.type, ...gt };
   fs.writeFileSync(path.join(OUT, file.replace(".png", ".json")), JSON.stringify(truth, null, 2));
   index.push({ file, tier: P.tier, theme: P.themeKey, format: `${P.fmt.w}x${P.fmt.h}`, texts: gt.texts.length, objects: gt.objects.length });

@@ -33,6 +33,7 @@ export interface VideoBreakdown {
 export interface VideoOptions {
   ocr: boolean;
   ocrInvertPass: boolean;
+  ai?: boolean;
   sensitivity: number;
   maxObjects: number;
   onStep?: (id: VideoStepId, status: "active" | "done", note?: string) => void;
@@ -103,6 +104,7 @@ export async function analyzeVideo(src: string, fileName: string, opt: VideoOpti
           // Nothing to read on a near-blank frame, and OCR on pure grain is slow.
           ocr: opt.ocr && !empty,
           ocrInvertPass: opt.ocrInvertPass,
+          ai: opt.ai,
           cloud: false,
           sensitivity: opt.sensitivity,
           maxObjects: opt.maxObjects,
